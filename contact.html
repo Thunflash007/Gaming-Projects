@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Kontakt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        input, textarea {
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 15px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>Kontakt</h1>
+    <form id="contact-form" action="/contact" method="post">
+        <input type="text" id="name" name="name" placeholder="Ihr Name" required>
+        <input type="email" id="email" name="email" placeholder="Ihre E-Mail" required>
+        <input type="tel" id="phone" name="phone" placeholder="Ihre Telefonnummer">
+        <textarea id="message" name="message" placeholder="Ihre Nachricht" required></textarea>
+        <button type="submit">Senden</button>
+    </form>
+</body>
+</html>

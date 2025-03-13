@@ -26,6 +26,9 @@
             display: block;
             margin: 5px 0;
         }
+        #contact-messages {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -34,6 +37,12 @@
         <a href="/">Startseite</a>
     </div>
     <h1>Willkommen im Admin Dashboard</h1>
+    <div id="contact-messages">
+        <h2>Kontakt Nachrichten</h2>
+        <ul id="messages-list">
+            <!-- Nachrichten werden hier eingefügt -->
+        </ul>
+    </div>
     <script>
         function toggleMenu() {
             const menu = document.getElementById('menu');
@@ -43,6 +52,18 @@
                 menu.style.display = 'none';
             }
         }
+
+        // Lade die Nachrichten vom Server
+        fetch('/messages')
+            .then(response => response.json())
+            .then(messages => {
+                const messagesList = document.getElementById('messages-list');
+                messages.forEach(message => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `Von: ${message.email} - Nachricht: ${message.message}`;
+                    messagesList.appendChild(listItem);
+                });
+            });
     </script>
 </body>
 </html>
