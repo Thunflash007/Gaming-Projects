@@ -1,12 +1,4 @@
-[
-  {
-    "email": "thunflash007@gmail.com",
-    "username": "Thunderflash",
-    "password": "2q"
-  },
-  {
-    "email": "support@vmoon.de",
-    "username": "V",
-    "password": "1"
-  }
-]
+{
+  "iv": "dbe73d48f65e22f031f7d235216747e5",
+  "content": "13d313675f67cdcd8f9363b1343b03a9c3070dc5e96f1e39e0ea53deb4c219d0e5fdd2145ab4dae7c93b8d5f58cb2183821e29bf0375348f3ceea521bdcf13625fbf05dc1c37cb7e7186c039245b492aabdc36d6324fb88f914fa7edc70dd00946e8dadc56766b196f5037829c7ea62bc074dc842d153e39f2dff93deee9788d1c3573927fb764577b1f6edeb081794007e02cec45421e7900fe9d922d48"
+}

@@ -3,8 +3,9 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const fs = require('fs'); // Datei-System-Modul importieren
 const crypto = require('crypto'); // crypto-Modul importieren
+const nodemailer = require('nodemailer'); // nodemailer-Modul importieren
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3002; // Port auf 3002 geändert
 
 const algorithm = 'aes-256-ctr';
 const secretKey = 'vOVH6sdmpNWjRRIqCc7rdxs01lwHzfr3';
@@ -36,9 +37,15 @@ let votedUsers = new Set(); // Set zur Speicherung der Benutzer, die bereits abg
 // Benutzerkonten aus Datei laden
 function loadUsers() {
     if (fs.existsSync('users.json')) {
-        const data = fs.readFileSync('users.json');
-        const decryptedData = decrypt(JSON.parse(data));
-        users = JSON.parse(decryptedData);
+        const data = fs.readFileSync('users.json', 'utf8');
+        if (data) {
+            try {
+                const decryptedData = decrypt(JSON.parse(data));
+                users = JSON.parse(decryptedData);
+            } catch (error) {
+                console.error('Fehler beim Entschlüsseln der Benutzerdaten:', error);
+            }
+        }
     }
 }
 
@@ -53,6 +60,14 @@ loadUsers();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'your-email@gmail.com',
+        pass: 'your-email-password'
+    }
+});
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'website.html'));
@@ -165,6 +180,86 @@ app.get('/users', (req, res) => {
 app.get('/current-vote', (req, res) => {
     const remainingTime = new Date(endTime) - new Date();
     res.json({ currentVote, results: Object.entries(votes).map(([answer, votes]) => ({ answer, votes })), remainingTime });
+});
+
+app.get('/reset-password', (req, res) => {
+    res.sendFile(path.join(__dirname, 'reset-password-request.html'));
+});
+
+app.post('/reset-password', (req, res) => {
+    const { email } = req.body;
+    const user = users.find(user => user.email === email);
+
+    if (user) {
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetLink = `http://localhost:${port}/reset-password/${resetToken}`;
+
+        // Speichere den Reset-Token im Benutzerobjekt
+        user.resetToken = resetToken;
+        saveUsers();
+
+        const mailOptions = {
+            from: 'your-email@gmail.com',
+            to: email,
+            subject: 'Passwort zurücksetzen',
+            text: `Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen: ${resetLink}`
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Fehler beim Senden der E-Mail:', error);
+                res.json({ error: 'Fehler beim Senden der E-Mail.' });
+            } else {
+                res.json({ success: 'E-Mail zum Zurücksetzen des Passworts wurde gesendet.' });
+            }
+        });
+    } else {
+        res.json({ error: 'E-Mail nicht gefunden.' });
+    }
+});
+
+app.get('/reset-password/:token', (req, res) => {
+    const { token } = req.params;
+    const user = users.find(user => user.resetToken === token);
+
+    if (user) {
+        res.sendFile(path.join(__dirname, 'reset-password.html'));
+    } else {
+        res.status(400).send('Ungültiger oder abgelaufener Token.');
+    }
+});
+
+app.post('/reset-password/:token', (req, res) => {
+    const { token } = req.params;
+    const { username, password } = req.body;
+    const user = users.find(user => user.resetToken === token);
+
+    if (user) {
+        user.username = username;
+        user.password = password;
+        delete user.resetToken; // Entferne den Reset-Token nach erfolgreichem Zurücksetzen
+        saveUsers();
+        res.json({ success: 'Benutzername und Passwort erfolgreich zurückgesetzt.' });
+    } else {
+        res.status(400).json({ error: 'Ungültiger oder abgelaufener Token.' });
+    }
+});
+
+app.get('/delete-account', (req, res) => {
+    res.sendFile(path.join(__dirname, 'delete-account.html'));
+});
+
+app.post('/delete-account', (req, res) => {
+    const { email, username, password } = req.body;
+    const userIndex = users.findIndex(user => user.email === email && user.username === username && user.password === password);
+
+    if (userIndex !== -1) {
+        users.splice(userIndex, 1);
+        saveUsers();
+        res.json({ success: 'Account erfolgreich gelöscht.' });
+    } else {
+        res.json({ error: 'Ungültige E-Mail, Benutzername oder Passwort.' });
+    }
 });
 
 // Fehler-Middleware hinzufügen
