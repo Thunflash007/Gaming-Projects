@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Admin Bereich</title>
+    <style>
+        body {
+            text-align: center;
+        }
+        form {
+            margin: 20px auto;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        input {
+            margin: 5px 0;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Bereich</h1>
+    <form id="admin-form" action="/admin" method="post">
+        <input type="password" id="password" name="password" placeholder="Passwort" required>
+        <button type="submit">Einloggen</button>
+    </form>
+</body>
+</html>

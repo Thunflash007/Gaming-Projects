@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            text-align: center;
+        }
+        #menu-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+        #menu {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            display: none;
+            background-color: white;
+            border: 1px solid black;
+            padding: 10px;
+        }
+        #menu a {
+            display: block;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="menu-button" onclick="toggleMenu()">☰</div>
+    <div id="menu">
+        <a href="/">Startseite</a>
+    </div>
+    <h1>Willkommen im Admin Dashboard</h1>
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'block';
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
