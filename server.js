@@ -5,6 +5,7 @@ const app = express();
 const port = 3001;
 
 let messages = [];
+let users = []; // Hinzufügen eines Arrays zur Speicherung von Benutzern
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -26,14 +27,14 @@ app.post('/admin', (req, res) => {
     }
 });
 
-// Entfernen der Kontakt-Routen
-// app.get('/contact', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'contact.html'));
+// Entfernen der Registrierungs-Routen
+// app.get('/register', (req, res) => {
+//     res.sendFile(path.join(__dirname, 'register.html'));
 // });
 
-// app.post('/contact', (req, res) => {
-//     const { name, email, phone, message } = req.body;
-//     messages.push({ name, email, phone, message });
+// app.post('/register', (req, res) => {
+//     const { email, username, password } = req.body;
+//     users.push({ email, username, password });
 //     res.redirect('/');
 // });
 
