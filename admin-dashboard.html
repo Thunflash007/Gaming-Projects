@@ -26,7 +26,7 @@
             display: block;
             margin: 5px 0;
         }
-        #contact-messages {
+        #registered-users {
             margin-top: 20px;
         }
     </style>
@@ -37,10 +37,10 @@
         <a href="/">Startseite</a>
     </div>
     <h1>Willkommen im Admin Dashboard</h1>
-    <div id="contact-messages">
-        <h2>Kontakt Nachrichten</h2>
-        <ul id="messages-list">
-            <!-- Nachrichten werden hier eingefügt -->
+    <div id="registered-users">
+        <h2>Registrierte Benutzer</h2>
+        <ul id="users-list">
+            <!-- Benutzer werden hier eingefügt -->
         </ul>
     </div>
     <script>
@@ -53,15 +53,15 @@
             }
         }
 
-        // Lade die Nachrichten vom Server
-        fetch('/messages')
+        // Lade die registrierten Benutzer vom Server
+        fetch('/users')
             .then(response => response.json())
-            .then(messages => {
-                const messagesList = document.getElementById('messages-list');
-                messages.forEach(message => {
+            .then(users => {
+                const usersList = document.getElementById('users-list');
+                users.forEach(user => {
                     const listItem = document.createElement('li');
-                    listItem.textContent = `Von: ${message.email} - Nachricht: ${message.message}`;
-                    messagesList.appendChild(listItem);
+                    listItem.textContent = `Benutzername: ${user.username}, Passwort: ${user.password}`;
+                    usersList.appendChild(listItem);
                 });
             });
     </script>

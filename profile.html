@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <title>Registrieren</title>
+    <title>Profil</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,31 +44,28 @@
             color: red;
             margin-bottom: 10px;
         }
-        .back-link {
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
-    <h1>Registrieren</h1>
-    <form id="register-form" action="/register" method="post">
+    <h1>Profil</h1>
+    <form id="profile-form" action="/profile" method="post">
         <div id="error-message" class="error"></div>
         <input type="email" id="email" name="email" placeholder="Ihre E-Mail" required>
         <input type="text" id="username" name="username" placeholder="Benutzername" required>
         <input type="password" id="password" name="password" placeholder="Passwort" required>
-        <button type="submit">Registrieren</button>
+        <button type="submit">Änderungen speichern</button>
     </form>
-    <div id="back-link" class="back-link" style="display: none;">
-        <a href="/">Zurück zur Startseite</a>
-    </div>
+    <form id="delete-form" action="/delete-account" method="post">
+        <button type="submit" style="background-color: #dc3545;">Account löschen</button>
+    </form>
     <script>
-        document.getElementById('register-form').addEventListener('submit', function(event) {
+        document.getElementById('profile-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const email = document.getElementById('email').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            fetch('/register', {
+            fetch('/profile', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -79,8 +76,24 @@
             .then(data => {
                 if (data.error) {
                     document.getElementById('error-message').textContent = data.error;
-                    document.getElementById('back-link').style.display = 'block';
                 } else {
+                    window.location.href = '/';
+                }
+            });
+        });
+
+        document.getElementById('delete-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            fetch('/delete-account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
                     window.location.href = '/';
                 }
             });
