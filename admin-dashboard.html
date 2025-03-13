@@ -29,12 +29,26 @@
         #registered-users {
             margin-top: 20px;
         }
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .user-item button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <div id="menu-button" onclick="toggleMenu()">☰</div>
     <div id="menu">
         <a href="/">Startseite</a>
+        <a href="/admin/vote">Abstimmung festlegen</a> <!-- Link zur Admin-Abstimmungsseite hinzugefügt -->
     </div>
     <h1>Willkommen im Admin Dashboard</h1>
     <div id="registered-users">
@@ -53,17 +67,39 @@
             }
         }
 
-        // Lade die registrierten Benutzer vom Server
-        fetch('/users')
+        function deleteUser(username) {
+            fetch('/admin/delete-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username })
+            })
             .then(response => response.json())
-            .then(users => {
-                const usersList = document.getElementById('users-list');
-                users.forEach(user => {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = `Benutzername: ${user.username}, Passwort: ${user.password}`;
-                    usersList.appendChild(listItem);
-                });
+            .then(data => {
+                if (data.success) {
+                    loadUsers();
+                }
             });
+        }
+
+        function loadUsers() {
+            fetch('/users')
+                .then(response => response.json())
+                .then(users => {
+                    const usersList = document.getElementById('users-list');
+                    usersList.innerHTML = '';
+                    users.forEach(user => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'user-item';
+                        listItem.innerHTML = `Benutzername: ${user.username} <button onclick="deleteUser('${user.username}')">Löschen</button>`;
+                        usersList.appendChild(listItem);
+                    });
+                });
+        }
+
+        // Lade die registrierten Benutzer vom Server
+        loadUsers();
     </script>
 </body>
 </html>

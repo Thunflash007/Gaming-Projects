@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Admin Abstimmung</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        form {
+            margin: 20px auto;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .answer {
+            display: flex;
+            align-items: center;
+        }
+        .answer input {
+            flex: 1;
+        }
+        .answer button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Abstimmung</h1>
+    <form id="vote-form">
+        <input type="text" id="current-vote" name="currentVote" placeholder="Aktuelle Abstimmung" required>
+        <div id="answers">
+            <div class="answer">
+                <input type="text" name="answers" placeholder="Antwort" required>
+                <button type="button" onclick="removeAnswer(this)">Entfernen</button>
+            </div>
+        </div>
+        <button type="button" onclick="addAnswer()">Antwort hinzufügen</button>
+        <input type="datetime-local" id="end-time" name="endTime" required>
+        <button type="submit">Abstimmung festlegen</button>
+    </form>
+    <script>
+        function addAnswer() {
+            const answersDiv = document.getElementById('answers');
+            const newAnswerDiv = document.createElement('div');
+            newAnswerDiv.className = 'answer';
+            newAnswerDiv.innerHTML = '<input type="text" name="answers" placeholder="Antwort" required><button type="button" onclick="removeAnswer(this)">Entfernen</button>';
+            answersDiv.appendChild(newAnswerDiv);
+        }
+
+        function removeAnswer(button) {
+            button.parentElement.remove();
+        }
+
+        document.getElementById('vote-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const currentVote = document.getElementById('current-vote').value;
+            const answers = Array.from(document.getElementsByName('answers')).map(input => input.value);
+            const endTime = document.getElementById('end-time').value;
+
+            fetch('/admin/vote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ currentVote, answers, endTime })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Abstimmung erfolgreich festgelegt!');
+                    window.location.href = '/admin-dashboard';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

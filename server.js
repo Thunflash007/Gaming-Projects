@@ -1,21 +1,58 @@
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
-// const session = require('express-session'); // Session-Paket importieren (entfernt)
+const fs = require('fs'); // Datei-System-Modul importieren
+const crypto = require('crypto'); // crypto-Modul importieren
 const app = express();
 const port = 3001;
 
+const algorithm = 'aes-256-ctr';
+const secretKey = 'vOVH6sdmpNWjRRIqCc7rdxs01lwHzfr3';
+
+const encrypt = (text) => {
+    const iv = crypto.randomBytes(16); // IV hier initialisieren
+    const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
+    const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
+    return {
+        iv: iv.toString('hex'),
+        content: encrypted.toString('hex')
+    };
+};
+
+const decrypt = (hash) => {
+    const decipher = crypto.createDecipheriv(algorithm, secretKey, Buffer.from(hash.iv, 'hex'));
+    const decrypted = Buffer.concat([decipher.update(Buffer.from(hash.content, 'hex')), decipher.final()]);
+    return decrypted.toString();
+};
+
 let messages = [];
 let users = []; // Hinzufügen eines Arrays zur Speicherung von Benutzern
+let currentVote = ''; // Variable zur Speicherung der aktuellen Abstimmung
+let answers = []; // Variable zur Speicherung der Antworten
+let endTime = ''; // Variable zur Speicherung der Endzeit
+let votes = {}; // Variable zur Speicherung der Stimmen
+let votedUsers = new Set(); // Set zur Speicherung der Benutzer, die bereits abgestimmt haben
+
+// Benutzerkonten aus Datei laden
+function loadUsers() {
+    if (fs.existsSync('users.json')) {
+        const data = fs.readFileSync('users.json');
+        const decryptedData = decrypt(JSON.parse(data));
+        users = JSON.parse(decryptedData);
+    }
+}
+
+// Benutzerkonten in Datei speichern
+function saveUsers() {
+    const encryptedData = encrypt(JSON.stringify(users));
+    fs.writeFileSync('users.json', JSON.stringify(encryptedData, null, 2));
+}
+
+loadUsers();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
-// app.use(session({ // Session-Konfiguration (entfernt)
-//     secret: 'geheimnis', // Geheimnis für die Verschlüsselung der Session
-//     resave: false, // Session wird nur gespeichert, wenn sie sich ändert
-//     saveUninitialized: true // Neue, aber unveränderte Sessions werden gespeichert
-// }));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'website.html'));
@@ -28,11 +65,38 @@ app.get('/admin', (req, res) => {
 app.post('/admin', (req, res) => {
     const { password } = req.body;
     if (password === '2q') {
-        // req.session.isAdmin = true; // Setze Admin-Session (entfernt)
         res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
     } else {
         res.redirect('/');
     }
+});
+
+app.get('/admin-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
+app.get('/admin/vote', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-vote.html'));
+});
+
+app.post('/admin/vote', (req, res) => {
+    const { currentVote: newCurrentVote, answers: newAnswers, endTime: newEndTime } = req.body;
+    currentVote = newCurrentVote;
+    answers = newAnswers;
+    endTime = newEndTime;
+    votes = newAnswers.reduce((acc, answer) => {
+        acc[answer] = 0;
+        return acc;
+    }, {});
+    votedUsers.clear(); // Set zurücksetzen, wenn eine neue Abstimmung erstellt wird
+    res.json({ success: true });
+});
+
+app.post('/admin/delete-user', (req, res) => {
+    const { username } = req.body;
+    users = users.filter(user => user.username !== username);
+    saveUsers(); // Benutzerkonten speichern
+    res.json({ success: true });
 });
 
 app.get('/register', (req, res) => {
@@ -50,8 +114,44 @@ app.post('/register', (req, res) => {
         res.json({ error: 'Dieser Benutzername ist bereits in Nutzung.' });
     } else {
         users.push({ email, username, password });
+        saveUsers(); // Benutzerkonten speichern
         res.json({ success: true });
     }
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const user = users.find(user => user.username === username && user.password === password);
+
+    if (user) {
+        const isEnded = new Date() > new Date(endTime);
+        res.json({ success: true, currentVote, answers, isEnded, results: Object.entries(votes).map(([answer, votes]) => ({ answer, votes })) });
+    } else {
+        res.json({ error: 'Ungültiger Benutzername oder Passwort.' });
+    }
+});
+
+app.get('/vote', (req, res) => {
+    res.sendFile(path.join(__dirname, 'vote.html'));
+});
+
+app.post('/vote', (req, res) => {
+    const { username, selectedAnswers } = req.body;
+    if (votedUsers.has(username)) {
+        const isEnded = new Date() > new Date(endTime);
+        return res.json({ error: 'Sie haben bereits abgestimmt.', isEnded, results: Object.entries(votes).map(([answer, votes]) => ({ answer, votes })) });
+    }
+    selectedAnswers.forEach(answer => {
+        if (votes[answer] !== undefined) {
+            votes[answer]++;
+        }
+    });
+    votedUsers.add(username); // Benutzer zur Liste der Abstimmenden hinzufügen
+    res.json({ success: true });
 });
 
 app.get('/messages', (req, res) => {
@@ -60,6 +160,11 @@ app.get('/messages', (req, res) => {
 
 app.get('/users', (req, res) => {
     res.json(users);
+});
+
+app.get('/current-vote', (req, res) => {
+    const remainingTime = new Date(endTime) - new Date();
+    res.json({ currentVote, results: Object.entries(votes).map(([answer, votes]) => ({ answer, votes })), remainingTime });
 });
 
 // Fehler-Middleware hinzufügen

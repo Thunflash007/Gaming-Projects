@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Abstimmung</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .error {
+            color: red;
+            margin-bottom: 10px;
+        }
+        .back-link {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Abstimmung</h1>
+    <div id="login-section">
+        <form id="login-form">
+            <div id="error-message" class="error"></div>
+            <input type="text" id="username" name="username" placeholder="Benutzername" required>
+            <input type="password" id="password" name="password" placeholder="Passwort" required>
+            <button type="submit">Einloggen</button>
+        </form>
+        <div id="register-link" style="display: none;">
+            <p>Sie sind nicht registriert? <a href="/register">Registrieren</a></p>
+        </div>
+    </div>
+    <div id="vote-section" style="display: none;">
+        <h2 id="current-vote"></h2>
+        <form id="vote-form">
+            <div id="answers"></div>
+            <button type="submit">Abstimmen</button>
+        </form>
+    </div>
+    <div id="result-section" style="display: none;">
+        <h2>Ergebnis</h2>
+        <div id="results"></div>
+        <div class="back-link">
+            <a href="/">Zurück zur Startseite</a>
+        </div>
+    </div>
+    <script>
+        let currentUsername = '';
+
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('error-message').textContent = data.error;
+                    if (data.error === 'Benutzer nicht registriert.') {
+                        document.getElementById('register-link').style.display = 'block';
+                    }
+                } else {
+                    currentUsername = username;
+                    document.getElementById('login-section').style.display = 'none';
+                    if (data.isEnded) {
+                        document.getElementById('result-section').style.display = 'block';
+                        document.getElementById('results').innerHTML = data.results.map(result => `<p>${result.answer}: ${result.votes} Stimmen</p>`).join('');
+                    } else {
+                        document.getElementById('vote-section').style.display = 'block';
+                        document.getElementById('current-vote').textContent = data.currentVote;
+                        document.getElementById('answers').innerHTML = data.answers.map(answer => `<div><input type="checkbox" name="answers" value="${answer}">${answer}</div>`).join('');
+                    }
+                }
+            });
+        });
+
+        document.getElementById('vote-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const selectedAnswers = Array.from(document.querySelectorAll('input[name="answers"]:checked')).map(input => input.value);
+
+            fetch('/vote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: currentUsername, selectedAnswers })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    if (data.isEnded) {
+                        document.getElementById('vote-section').style.display = 'none';
+                        document.getElementById('result-section').style.display = 'block';
+                        document.getElementById('results').innerHTML = data.results.map(result => `<p>${result.answer}: ${result.votes} Stimmen</p>`).join('');
+                    }
+                } else if (data.success) {
+                    alert('Danke für Ihre Stimme!');
+                    document.getElementById('vote-section').style.display = 'none';
+                    document.getElementById('result-section').style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
