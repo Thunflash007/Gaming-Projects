@@ -385,12 +385,34 @@ app.post('/reorder-members', (req, res) => {
     res.json({ success: true });
 });
 
+app.post('/delete-category', (req, res) => {
+    const { category } = req.body;
+    if (teamMembers[category]) {
+        delete teamMembers[category];
+        saveTeamMembers();
+        res.json({ success: true });
+    } else {
+        res.status(400).json({ error: 'Kategorie nicht gefunden.' });
+    }
+});
+
 // Fehler-Middleware hinzufügen
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).sendFile(path.join(__dirname, 'error.html'));
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server läuft auf http://localhost:${port}`);
+});
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${port} ist bereits in Verwendung. Versuche, einen anderen Port zu verwenden.`);
+        const newServer = app.listen(0, () => {
+            console.log(`Server läuft auf http://localhost:${newServer.address().port}`);
+        });
+    } else {
+        throw err;
+    }
 });

@@ -24,14 +24,54 @@
             border-radius: 50%;
             object-fit: cover;
         }
+        #menu-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+        #menu {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            display: none;
+            background-color: white;
+            border: 1px solid black;
+            padding: 10px;
+        }
+        #menu a {
+            display: block;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
+    <div id="menu-button" onclick="toggleMenu()">☰</div>
+    <div id="menu">
+        <a href="/">Startseite</a>
+        <a href="/admin">Admin Bereich</a>
+        <a href="/register">Registrieren</a>
+        <a href="/profile" id="profile-link" style="display: none;">Profil</a>
+        <a href="/logout" id="logout-link" style="display: none;">Ausloggen</a>
+        <a href="/vote">Abstimmung</a>
+        <a href="/delete-account">Account löschen</a>
+        <a href="/team">Unser Team</a>
+    </div>
     <h1>Unser Team</h1>
     <div id="team-container">
         <!-- Teammitglieder werden hier eingefügt -->
     </div>
     <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'block';
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+
         fetch('/team-members')
             .then(response => response.json())
             .then(data => {

@@ -63,6 +63,9 @@
             cursor: pointer;
             border-radius: 4px;
         }
+        .list-item .delete-button {
+            background-color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -83,10 +86,7 @@
         <form id="upload-form" enctype="multipart/form-data">
             <select id="username" name="username" required>
                 <option value="" disabled selected>Wählen Sie ein Teammitglied</option>
-                <option value="Dynamo_Mathias">Dynamo_Mathias</option>
-                <option value="Theredjar">Theredjar</option>
-                <option value="Thunderflash">Thunderflash</option>
-                <option value="skipyall">skipyall</option>
+                <!-- Teammitglieder werden hier eingefügt -->
             </select>
             <input type="file" id="profile-pic" name="profilePic" accept="image/*" required>
             <button type="submit">Hochladen</button>
@@ -190,8 +190,10 @@
                     const newMemberCategorySelect = document.getElementById('new-member-category');
                     const categoryOrderDiv = document.getElementById('category-order');
                     const memberOrderDiv = document.getElementById('member-order');
+                    const uploadMemberSelect = document.getElementById('username');
                     deleteMemberSelect.innerHTML = '<option value="" disabled selected>Wählen Sie ein Teammitglied</option>';
                     newMemberCategorySelect.innerHTML = '<option value="" disabled selected>Wählen Sie eine Kategorie</option>';
+                    uploadMemberSelect.innerHTML = '<option value="" disabled selected>Wählen Sie ein Teammitglied</option>';
                     categoryOrderDiv.innerHTML = '';
                     memberOrderDiv.innerHTML = '';
                     Object.keys(data).forEach(category => {
@@ -207,6 +209,7 @@
                             <div>
                                 <button onclick="moveUp(this)">▲</button>
                                 <button onclick="moveDown(this)">▼</button>
+                                <button class="delete-button" onclick="deleteCategory('${category}')">Löschen</button>
                             </div>
                         `;
                         categoryOrderDiv.appendChild(categoryItem);
@@ -216,6 +219,7 @@
                             option.value = member;
                             option.textContent = `${member} (${category})`;
                             deleteMemberSelect.appendChild(option);
+                            uploadMemberSelect.appendChild(option.cloneNode(true));
 
                             const memberItem = document.createElement('div');
                             memberItem.className = 'list-item';
@@ -286,6 +290,24 @@
                     loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
                 } else {
                     alert('Fehler beim Neuanordnen der Mitglieder.');
+                }
+            });
+        }
+
+        function deleteCategory(category) {
+            fetch('/delete-category', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ category })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
+                } else {
+                    alert('Fehler beim Löschen der Kategorie.');
                 }
             });
         }
