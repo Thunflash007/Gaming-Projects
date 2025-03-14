@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const fs = require('fs'); // Datei-System-Modul importieren
 const crypto = require('crypto'); // crypto-Modul importieren
 const nodemailer = require('nodemailer'); // nodemailer-Modul importieren
+const multer = require('multer'); // multer-Modul importieren
 const app = express();
 const port = process.env.PORT || 3002; // Port auf 3002 geändert
 
@@ -33,6 +34,10 @@ let answers = []; // Variable zur Speicherung der Antworten
 let endTime = ''; // Variable zur Speicherung der Endzeit
 let votes = {}; // Variable zur Speicherung der Stimmen
 let votedUsers = new Set(); // Set zur Speicherung der Benutzer, die bereits abgestimmt haben
+let teamMembers = {
+    Admins: ['Dynamo_Mathias', 'Theredjar', 'Thunderflash'],
+    Moderator: ['skipyall']
+}; // Teammitglieder nach Kategorien
 
 // Benutzerkonten aus Datei laden
 function loadUsers() {
@@ -55,11 +60,30 @@ function saveUsers() {
     fs.writeFileSync('users.json', JSON.stringify(encryptedData, null, 2));
 }
 
+// Teammitglieder und Kategorien aus Datei laden
+function loadTeamMembers() {
+    if (fs.existsSync('teamMembers.json')) {
+        const data = fs.readFileSync('teamMembers.json', 'utf8');
+        if (data) {
+            teamMembers = JSON.parse(data);
+        }
+    }
+}
+
+// Teammitglieder und Kategorien in Datei speichern
+function saveTeamMembers() {
+    fs.writeFileSync('teamMembers.json', JSON.stringify(teamMembers, null, 2));
+}
+
 loadUsers();
+loadTeamMembers();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Statische Dateien aus dem Upload-Ordner bedienen
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -68,6 +92,21 @@ const transporter = nodemailer.createTransport({
         pass: 'your-email-password'
     }
 });
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath);
+        }
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${req.body.username}.jpg`);
+    }
+});
+
+const upload = multer({ storage });
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'website.html'));
@@ -260,6 +299,90 @@ app.post('/delete-account', (req, res) => {
     } else {
         res.json({ error: 'Ungültige E-Mail, Benutzername oder Passwort.' });
     }
+});
+
+app.get('/team', (req, res) => {
+    res.sendFile(path.join(__dirname, 'team.html'));
+});
+
+app.get('/team-members', (req, res) => {
+    res.json(teamMembers);
+});
+
+app.post('/upload-profile-pic', upload.single('profilePic'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Fehler beim Hochladen der Datei.' });
+    }
+    res.json({ success: true });
+});
+
+app.post('/add-member', (req, res) => {
+    const { newMemberName, newMemberCategory } = req.body;
+    if (!teamMembers[newMemberCategory]) {
+        return res.status(400).json({ error: 'Kategorie nicht gefunden.' });
+    }
+    teamMembers[newMemberCategory].push(newMemberName);
+    saveTeamMembers();
+    res.json({ success: true });
+});
+
+app.post('/add-category', (req, res) => {
+    const { newCategoryName } = req.body;
+    if (teamMembers[newCategoryName]) {
+        return res.status(400).json({ error: 'Kategorie existiert bereits.' });
+    }
+    teamMembers[newCategoryName] = [];
+    saveTeamMembers();
+    res.json({ success: true });
+});
+
+app.post('/delete-member', (req, res) => {
+    const { deleteMemberName } = req.body;
+    let memberFound = false;
+    Object.keys(teamMembers).forEach(category => {
+        const memberIndex = teamMembers[category].indexOf(deleteMemberName);
+        if (memberIndex !== -1) {
+            teamMembers[category].splice(memberIndex, 1);
+            memberFound = true;
+        }
+    });
+    if (memberFound) {
+        saveTeamMembers();
+        res.json({ success: true });
+    } else {
+        res.status(400).json({ error: 'Teammitglied nicht gefunden.' });
+    }
+});
+
+app.post('/reorder-categories', (req, res) => {
+    const { categoryOrder } = req.body;
+    const newTeamMembers = {};
+    categoryOrder.forEach(category => {
+        if (teamMembers[category]) {
+            newTeamMembers[category] = teamMembers[category];
+        }
+    });
+    teamMembers = newTeamMembers;
+    saveTeamMembers();
+    res.json({ success: true });
+});
+
+app.post('/reorder-members', (req, res) => {
+    const { memberOrder } = req.body;
+    const newTeamMembers = {};
+    Object.keys(teamMembers).forEach(category => {
+        newTeamMembers[category] = [];
+    });
+    memberOrder.forEach(member => {
+        Object.keys(teamMembers).forEach(category => {
+            if (teamMembers[category].includes(member)) {
+                newTeamMembers[category].push(member);
+            }
+        });
+    });
+    teamMembers = newTeamMembers;
+    saveTeamMembers();
+    res.json({ success: true });
 });
 
 // Fehler-Middleware hinzufügen

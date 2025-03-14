@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Unser Team</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .team-member {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 100%;
+            max-width: 400px;
+        }
+        .team-member img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <h1>Unser Team</h1>
+    <div id="team-container">
+        <!-- Teammitglieder werden hier eingefügt -->
+    </div>
+    <script>
+        fetch('/team-members')
+            .then(response => response.json())
+            .then(data => {
+                const teamContainer = document.getElementById('team-container');
+                Object.keys(data).forEach(category => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'team-member';
+                    categoryDiv.innerHTML = `<h2>${category}</h2>`;
+                    data[category].forEach(member => {
+                        const memberDiv = document.createElement('div');
+                        memberDiv.innerHTML = `<img src="/uploads/${member}.jpg" alt="${member}"><p>${member}</p>`;
+                        categoryDiv.appendChild(memberDiv);
+                    });
+                    teamContainer.appendChild(categoryDiv);
+                });
+            });
+    </script>
+</body>
+</html>

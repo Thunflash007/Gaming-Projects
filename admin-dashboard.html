@@ -42,6 +42,27 @@
             cursor: pointer;
             border-radius: 4px;
         }
+        .upload-form, .add-member-form, .add-category-form, .delete-member-form, .reorder-category-form, .reorder-member-form {
+            margin-top: 20px;
+        }
+        .success-message {
+            color: green;
+            margin-top: 10px;
+        }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .list-item button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -56,6 +77,69 @@
         <ul id="users-list">
             <!-- Benutzer werden hier eingefügt -->
         </ul>
+    </div>
+    <div class="upload-form">
+        <h2>Profilbild hochladen</h2>
+        <form id="upload-form" enctype="multipart/form-data">
+            <select id="username" name="username" required>
+                <option value="" disabled selected>Wählen Sie ein Teammitglied</option>
+                <option value="Dynamo_Mathias">Dynamo_Mathias</option>
+                <option value="Theredjar">Theredjar</option>
+                <option value="Thunderflash">Thunderflash</option>
+                <option value="skipyall">skipyall</option>
+            </select>
+            <input type="file" id="profile-pic" name="profilePic" accept="image/*" required>
+            <button type="submit">Hochladen</button>
+        </form>
+        <div id="success-message" class="success-message" style="display: none;">Profilbild erfolgreich hochgeladen!</div>
+    </div>
+    <div class="add-member-form">
+        <h2>Neues Teammitglied hinzufügen</h2>
+        <form id="add-member-form">
+            <input type="text" id="new-member-name" name="newMemberName" placeholder="Name des neuen Mitglieds" required>
+            <select id="new-member-category" name="newMemberCategory" required>
+                <option value="" disabled selected>Wählen Sie eine Kategorie</option>
+                <!-- Kategorien werden hier eingefügt -->
+            </select>
+            <button type="submit">Hinzufügen</button>
+        </form>
+        <div id="add-member-success" class="success-message" style="display: none;">Neues Teammitglied erfolgreich hinzugefügt!</div>
+    </div>
+    <div class="add-category-form">
+        <h2>Neue Kategorie erstellen</h2>
+        <form id="add-category-form">
+            <input type="text" id="new-category-name" name="newCategoryName" placeholder="Name der neuen Kategorie" required>
+            <input type="number" id="category-priority" name="categoryPriority" placeholder="Priorität (niedrige Zahl = hohe Priorität)" required>
+            <button type="submit">Erstellen</button>
+        </form>
+        <div id="add-category-success" class="success-message" style="display: none;">Neue Kategorie erfolgreich erstellt!</div>
+    </div>
+    <div class="delete-member-form">
+        <h2>Teammitglied löschen</h2>
+        <form id="delete-member-form">
+            <select id="delete-member-name" name="deleteMemberName" required>
+                <option value="" disabled selected>Wählen Sie ein Teammitglied</option>
+                <!-- Teammitglieder werden hier eingefügt -->
+            </select>
+            <button type="submit">Löschen</button>
+        </form>
+        <div id="delete-member-success" class="success-message" style="display: none;">Teammitglied erfolgreich gelöscht!</div>
+    </div>
+    <div class="reorder-category-form">
+        <h2>Kategorien neu anordnen</h2>
+        <div id="category-order">
+            <!-- Kategorien werden hier eingefügt -->
+        </div>
+        <button onclick="saveCategoryOrder()">Reihenfolge speichern</button>
+        <div id="reorder-category-success" class="success-message" style="display: none;">Kategorien erfolgreich neu angeordnet!</div>
+    </div>
+    <div class="reorder-member-form">
+        <h2>Mitglieder neu anordnen</h2>
+        <div id="member-order">
+            <!-- Mitglieder werden hier eingefügt -->
+        </div>
+        <button onclick="saveMemberOrder()">Reihenfolge speichern</button>
+        <div id="reorder-member-success" class="success-message" style="display: none;">Mitglieder erfolgreich neu angeordnet!</div>
     </div>
     <script>
         function toggleMenu() {
@@ -98,8 +182,205 @@
                 });
         }
 
-        // Lade die registrierten Benutzer vom Server
+        function loadTeamMembers() {
+            fetch('/team-members')
+                .then(response => response.json())
+                .then(data => {
+                    const deleteMemberSelect = document.getElementById('delete-member-name');
+                    const newMemberCategorySelect = document.getElementById('new-member-category');
+                    const categoryOrderDiv = document.getElementById('category-order');
+                    const memberOrderDiv = document.getElementById('member-order');
+                    deleteMemberSelect.innerHTML = '<option value="" disabled selected>Wählen Sie ein Teammitglied</option>';
+                    newMemberCategorySelect.innerHTML = '<option value="" disabled selected>Wählen Sie eine Kategorie</option>';
+                    categoryOrderDiv.innerHTML = '';
+                    memberOrderDiv.innerHTML = '';
+                    Object.keys(data).forEach(category => {
+                        const categoryOption = document.createElement('option');
+                        categoryOption.value = category;
+                        categoryOption.textContent = category;
+                        newMemberCategorySelect.appendChild(categoryOption);
+
+                        const categoryItem = document.createElement('div');
+                        categoryItem.className = 'list-item';
+                        categoryItem.innerHTML = `
+                            <span>${category}</span>
+                            <div>
+                                <button onclick="moveUp(this)">▲</button>
+                                <button onclick="moveDown(this)">▼</button>
+                            </div>
+                        `;
+                        categoryOrderDiv.appendChild(categoryItem);
+
+                        data[category].forEach(member => {
+                            const option = document.createElement('option');
+                            option.value = member;
+                            option.textContent = `${member} (${category})`;
+                            deleteMemberSelect.appendChild(option);
+
+                            const memberItem = document.createElement('div');
+                            memberItem.className = 'list-item';
+                            memberItem.innerHTML = `
+                                <span>${member} (${category})</span>
+                                <div>
+                                    <button onclick="moveUp(this)">▲</button>
+                                    <button onclick="moveDown(this)">▼</button>
+                                </div>
+                            `;
+                            memberOrderDiv.appendChild(memberItem);
+                        });
+                    });
+                });
+        }
+
+        function moveUp(button) {
+            const item = button.closest('.list-item');
+            const prevItem = item.previousElementSibling;
+            if (prevItem) {
+                item.parentNode.insertBefore(item, prevItem);
+            }
+        }
+
+        function moveDown(button) {
+            const item = button.closest('.list-item');
+            const nextItem = item.nextElementSibling;
+            if (nextItem) {
+                item.parentNode.insertBefore(nextItem, item);
+            }
+        }
+
+        function saveCategoryOrder() {
+            const categoryOrder = Array.from(document.getElementById('category-order').children).map(item => item.querySelector('span').textContent);
+
+            fetch('/reorder-categories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ categoryOrder })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('reorder-category-success').style.display = 'block';
+                    loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
+                } else {
+                    alert('Fehler beim Neuanordnen der Kategorien.');
+                }
+            });
+        }
+
+        function saveMemberOrder() {
+            const memberOrder = Array.from(document.getElementById('member-order').children).map(item => item.querySelector('span').textContent.split(' ')[0]);
+
+            fetch('/reorder-members', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ memberOrder })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('reorder-member-success').style.display = 'block';
+                    loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
+                } else {
+                    alert('Fehler beim Neuanordnen der Mitglieder.');
+                }
+            });
+        }
+
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData();
+            formData.append('username', document.getElementById('username').value);
+            formData.append('profilePic', document.getElementById('profile-pic').files[0]);
+
+            fetch('/upload-profile-pic', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('success-message').style.display = 'block';
+                } else {
+                    alert('Fehler beim Hochladen des Profilbilds.');
+                }
+            });
+        });
+
+        document.getElementById('add-member-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const newMemberName = document.getElementById('new-member-name').value;
+            const newMemberCategory = document.getElementById('new-member-category').value;
+
+            fetch('/add-member', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ newMemberName, newMemberCategory })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('add-member-success').style.display = 'block';
+                    loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
+                } else {
+                    alert('Fehler beim Hinzufügen des neuen Teammitglieds.');
+                }
+            });
+        });
+
+        document.getElementById('add-category-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const newCategoryName = document.getElementById('new-category-name').value;
+            const categoryPriority = document.getElementById('category-priority').value;
+
+            fetch('/add-category', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ newCategoryName, categoryPriority })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('add-category-success').style.display = 'block';
+                    loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
+                } else {
+                    alert('Fehler beim Erstellen der neuen Kategorie.');
+                }
+            });
+        });
+
+        document.getElementById('delete-member-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const deleteMemberName = document.getElementById('delete-member-name').value;
+
+            fetch('/delete-member', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ deleteMemberName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('delete-member-success').style.display = 'block';
+                    loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
+                } else {
+                    alert('Fehler beim Löschen des Teammitglieds.');
+                }
+            });
+        });
+
+        // Lade die registrierten Benutzer und Teammitglieder vom Server
         loadUsers();
+        loadTeamMembers();
     </script>
 </body>
 </html>
