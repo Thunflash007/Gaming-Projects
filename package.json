@@ -4,11 +4,14 @@
   "description": "Ein einfacher Webserver für die Gaming Projects Website",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "start-pm2": "npm run install-pm2 && pm2 start server.js --name gaming-projects -f",
+    "install-pm2": "npm install -g pm2"
   },
   "dependencies": {
     "express": "^4.17.1",
     "nodemailer": "^6.7.2",
-    "multer": "^1.4.4"
+    "multer": "^1.4.4",
+    "pm2": "^5.1.0"
   }
 }

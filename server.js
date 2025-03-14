@@ -5,8 +5,22 @@ const fs = require('fs'); // Datei-System-Modul importieren
 const crypto = require('crypto'); // crypto-Modul importieren
 const nodemailer = require('nodemailer'); // nodemailer-Modul importieren
 const multer = require('multer'); // multer-Modul importieren
+const cors = require('cors'); // cors-Modul importieren
 const app = express();
 const port = process.env.PORT || 3002; // Port auf 3002 geändert
+
+// Middleware, um Anfragen an thundergaming.de zu akzeptieren
+app.use(cors({
+    origin: ['http://thundergaming.de', 'http://localhost']
+}));
+
+// Weiterleitung von Anfragen an thundergaming.de
+app.use((req, res, next) => {
+    if (req.headers.host === 'thundergaming.de') {
+        return res.redirect(301, 'https://github.com/thunderflash');
+    }
+    next();
+});
 
 const algorithm = 'aes-256-ctr';
 const secretKey = 'vOVH6sdmpNWjRRIqCc7rdxs01lwHzfr3';
