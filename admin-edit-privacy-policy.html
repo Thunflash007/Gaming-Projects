@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Datenschutz bearbeiten</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 100%;
+            max-width: 800px;
+            text-align: left;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 15px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .success-message {
+            color: green;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Datenschutz bearbeiten</h1>
+    <div class="content">
+        <form id="edit-privacy-policy-form">
+            <textarea id="privacy-policy-content" name="privacyPolicyContent" required></textarea>
+            <button type="submit">Speichern</button>
+            <div id="success-message" class="success-message" style="display: none;">Datenschutz erfolgreich aktualisiert!</div>
+        </form>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/privacy-policy-content')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('privacy-policy-content').value = data;
+                });
+        });
+
+        document.getElementById('edit-privacy-policy-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const privacyPolicyContent = document.getElementById('privacy-policy-content').value;
+
+            fetch('/admin/edit-privacy-policy', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ privacyPolicyContent })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('success-message').style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = '/admin-dashboard';
+                    }, 2000); // Weiterleitung nach 2 Sekunden
+                } else {
+                    alert('Fehler beim Aktualisieren der Datenschutzseite.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

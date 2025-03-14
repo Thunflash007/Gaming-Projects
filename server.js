@@ -147,6 +147,10 @@ app.get('/admin/vote', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin-vote.html'));
 });
 
+app.get('/admin/edit-privacy-policy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-edit-privacy-policy.html'));
+});
+
 app.post('/admin/vote', (req, res) => {
     const { currentVote: newCurrentVote, answers: newAnswers, endTime: newEndTime } = req.body;
     currentVote = newCurrentVote;
@@ -412,6 +416,44 @@ app.post('/delete-category', (req, res) => {
 
 app.get('/privacy-policy', (req, res) => {
     res.sendFile(path.join(__dirname, 'privacy-policy.html'));
+});
+
+// Route zum Abrufen des Datenschutzinhalts
+app.get('/privacy-policy-content', (req, res) => {
+    fs.readFile(path.join(__dirname, 'privacy-policy.html'), 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).send('Fehler beim Laden des Datenschutzinhalts.');
+        }
+        // Extrahiere nur den angezeigten Text
+        const contentMatch = data.match(/<div class="content">([\s\S]*?)<\/div>/);
+        if (contentMatch) {
+            res.send(contentMatch[1]);
+        } else {
+            res.status(500).send('Fehler beim Extrahieren des Datenschutzinhalts.');
+        }
+    });
+});
+
+// Route zum Aktualisieren des Datenschutzinhalts
+app.post('/admin/edit-privacy-policy', (req, res) => {
+    const { privacyPolicyContent } = req.body;
+    fs.readFile(path.join(__dirname, 'privacy-policy.html'), 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Fehler beim Laden des Datenschutzinhalts.' });
+        }
+        // Ersetze den angezeigten Text
+        const updatedData = data.replace(/<div class="content">([\s\S]*?)<\/div>/, `<div class="content">${privacyPolicyContent}</div>`);
+        fs.writeFile(path.join(__dirname, 'privacy-policy.html'), updatedData, 'utf8', (err) => {
+            if (err) {
+                return res.status(500).json({ success: false, message: 'Fehler beim Speichern des Datenschutzinhalts.' });
+            }
+            res.json({ success: true });
+        });
+    });
+});
+
+app.get('/contact', (req, res) => {
+    res.sendFile(path.join(__dirname, 'contact.html'));
 });
 
 // Fehler-Middleware hinzufügen
