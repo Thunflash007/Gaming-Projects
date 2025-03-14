@@ -396,6 +396,10 @@ app.post('/delete-category', (req, res) => {
     }
 });
 
+app.get('/privacy-policy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'privacy-policy.html'));
+});
+
 // Fehler-Middleware hinzufügen
 app.use((err, req, res, next) => {
     console.error(err.stack);
