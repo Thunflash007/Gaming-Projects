@@ -1,0 +1,29 @@
+name: Start Server
+
+on:
+  push:
+    branches:
+      - open
+  workflow_dispatch:
+
+jobs:
+  start-server:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16' # Stelle sicher, dass die Node.js-Version zu deinem Projekt passt
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Start server
+      run: npm run start-pm2 # Stelle sicher, dass dies das korrekte Startskript ist
+
+    - name: Verify Server is Running
+      run: curl -I http://localhost:3000/index.html # Stelle sicher, dass die URL und der Port korrekt sind
