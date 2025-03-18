@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Aktivitäts-Logs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .logs {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 100%;
+            max-width: 800px;
+            text-align: left;
+            white-space: pre-wrap; /* Zeilenumbrüche beibehalten */
+        }
+    </style>
+</head>
+<body>
+    <h1>Aktivitäts-Logs</h1>
+    <div class="logs" id="logs">
+        <!-- Logs werden hier eingefügt -->
+    </div>
+    <script>
+        fetch('/logs-data')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('logs').textContent = data;
+            });
+    </script>
+</body>
+</html>

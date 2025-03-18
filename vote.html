@@ -48,7 +48,7 @@
 </head>
 <body>
     <h1>Abstimmung</h1>
-    <div id="login-section">
+    <div id="login-section" style="display: none;">
         <form id="login-form">
             <div id="error-message" class="error"></div>
             <input type="text" id="username" name="username" placeholder="Benutzername" required>
@@ -79,6 +79,34 @@
     <script>
         let currentUsername = '';
 
+        function checkLoginStatus() {
+            fetch('/users')
+                .then(response => response.json())
+                .then(users => {
+                    if (users.length > 0) {
+                        currentUsername = users[0].username;
+                        loadVoteData();
+                    } else {
+                        document.getElementById('login-section').style.display = 'block';
+                    }
+                });
+        }
+
+        function loadVoteData() {
+            fetch('/current-vote')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.isEnded) {
+                        document.getElementById('result-section').style.display = 'block';
+                        document.getElementById('results').innerHTML = data.results.map(result => `<p>${result.answer}: ${result.votes} Stimmen</p>`).join('');
+                    } else {
+                        document.getElementById('vote-section').style.display = 'block';
+                        document.getElementById('current-vote').textContent = data.currentVote;
+                        document.getElementById('answers').innerHTML = data.answers.map(answer => `<div><input type="checkbox" name="answers" value="${answer}">${answer}</div>`).join('');
+                    }
+                });
+        }
+
         document.getElementById('login-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const username = document.getElementById('username').value;
@@ -101,14 +129,7 @@
                 } else {
                     currentUsername = username;
                     document.getElementById('login-section').style.display = 'none';
-                    if (data.isEnded) {
-                        document.getElementById('result-section').style.display = 'block';
-                        document.getElementById('results').innerHTML = data.results.map(result => `<p>${result.answer}: ${result.votes} Stimmen</p>`).join('');
-                    } else {
-                        document.getElementById('vote-section').style.display = 'block';
-                        document.getElementById('current-vote').textContent = data.currentVote;
-                        document.getElementById('answers').innerHTML = data.answers.map(answer => `<div><input type="checkbox" name="answers" value="${answer}">${answer}</div>`).join('');
-                    }
+                    loadVoteData();
                 }
             });
         });
@@ -140,6 +161,9 @@
                 }
             });
         });
+
+        // Überprüfen, ob der Benutzer eingeloggt ist
+        checkLoginStatus();
     </script>
 </body>
 </html>
