@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <title>Registrieren</title>
+    <title>Login</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,44 +44,40 @@
             color: red;
             margin-bottom: 10px;
         }
-        .back-link {
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
-    <h1>Registrieren</h1>
-    <form id="register-form" action="/register" method="post">
+    <h1>Login</h1>
+    <form id="login-form">
         <div id="error-message" class="error"></div>
-        <input type="email" id="email" name="email" placeholder="Ihre E-Mail" required>
+        <div id="success-message" class="success" style="display: none; color: green; margin-bottom: 10px;"></div>
         <input type="text" id="username" name="username" placeholder="Benutzername" required>
         <input type="password" id="password" name="password" placeholder="Passwort" required>
-        <button type="submit">Registrieren</button>
+        <button type="submit">Einloggen</button>
     </form>
-    <div id="back-link" class="back-link" style="display: none;">
-        <a href="/">Zurück zur Startseite</a>
-    </div>
     <script>
-        document.getElementById('register-form').addEventListener('submit', function(event) {
+        document.getElementById('login-form').addEventListener('submit', function(event) {
             event.preventDefault();
-            const email = document.getElementById('email').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            fetch('/register', {
+            fetch('/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ email, username, password })
+                body: JSON.stringify({ username, password })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
                     document.getElementById('error-message').textContent = data.error;
                 } else {
-                    alert(data.message);
-                    window.location.href = '/';
+                    document.getElementById('success-message').textContent = data.message;
+                    document.getElementById('success-message').style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000); // Weiterleitung nach 2 Sekunden
                 }
             });
         });

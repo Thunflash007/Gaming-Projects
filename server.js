@@ -6,8 +6,10 @@ const crypto = require('crypto'); // crypto-Modul importieren
 const nodemailer = require('nodemailer'); // nodemailer-Modul importieren
 const multer = require('multer'); // multer-Modul importieren
 const cors = require('cors'); // cors-Modul importieren
+const session = require('express-session'); // Session-Modul importieren
+const MongoStore = require('connect-mongo'); // MongoStore-Modul importieren
 const app = express();
-const port = process.env.PORT || 3002; // Port auf 3002 geändert
+const port = process.env.PORT || 4000; // Port auf 4000 geändert
 
 // Middleware, um Anfragen an thundergaming.de zu akzeptieren
 app.use(cors({
@@ -41,6 +43,22 @@ const decrypt = (hash) => {
     return decrypted.toString();
 };
 
+const encryptIP = (ip) => {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(algorithm, secretKey, iv);
+    const encrypted = Buffer.concat([cipher.update(ip), cipher.final()]);
+    return {
+        iv: iv.toString('hex'),
+        content: encrypted.toString('hex')
+    };
+};
+
+const decryptIP = (hash) => {
+    const decipher = crypto.createDecipheriv(algorithm, secretKey, Buffer.from(hash.iv, 'hex'));
+    const decrypted = Buffer.concat([decipher.update(Buffer.from(hash.content, 'hex')), decipher.final()]);
+    return decrypted.toString();
+};
+
 let messages = [];
 let users = []; // Hinzufügen eines Arrays zur Speicherung von Benutzern
 let currentVote = ''; // Variable zur Speicherung der aktuellen Abstimmung
@@ -52,6 +70,8 @@ let teamMembers = {
     Admins: ['Dynamo_Mathias', 'Theredjar', 'Thunderflash'],
     Moderator: ['skipyall']
 }; // Teammitglieder nach Kategorien
+let posts = []; // Hinzufügen eines Arrays zur Speicherung von Beiträgen
+let loginStatus = { loggedOut: true, ip: null }; // Hinzufügen einer Variable zur Speicherung des Login-Status und der IP
 
 // Benutzerkonten aus Datei laden
 function loadUsers() {
@@ -89,8 +109,49 @@ function saveTeamMembers() {
     fs.writeFileSync('teamMembers.json', JSON.stringify(teamMembers, null, 2));
 }
 
+// Beiträge aus Datei laden
+function loadPosts() {
+    if (fs.existsSync('posts.json')) {
+        const data = fs.readFileSync('posts.json', 'utf8');
+        if (data) {
+            posts = JSON.parse(data);
+        }
+    }
+}
+
+// Beiträge in Datei speichern
+function savePosts() {
+    fs.writeFileSync('posts.json', JSON.stringify(posts, null, 2));
+}
+
+// Login-Status aus Datei laden
+function loadLoginStatus() {
+    if (fs.existsSync('login-status.json')) {
+        const data = fs.readFileSync('login-status.json', 'utf8');
+        if (data) {
+            loginStatus = JSON.parse(data);
+            if (loginStatus.ip) {
+                loginStatus.ip = decryptIP(loginStatus.ip);
+            }
+        }
+    }
+}
+
+// Login-Status in Datei speichern
+function saveLoginStatus() {
+    if (loginStatus.ip) {
+        loginStatus.ip = encryptIP(loginStatus.ip);
+    }
+    fs.writeFileSync('login-status.json', JSON.stringify(loginStatus, null, 2));
+    if (loginStatus.ip) {
+        loginStatus.ip = decryptIP(loginStatus.ip);
+    }
+}
+
 loadUsers();
 loadTeamMembers();
+loadPosts(); // Beiträge laden
+loadLoginStatus(); // Login-Status laden
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -98,6 +159,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Statische Dateien aus dem Upload-Ordner bedienen
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.use(session({
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: 'mongodb://localhost:27017/sessions', // URL zu Ihrer MongoDB-Datenbank
+        collectionName: 'sessions'
+    }),
+    cookie: { secure: false } // Setze auf true, wenn HTTPS verwendet wird
+}));
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -123,7 +195,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'website.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
@@ -137,6 +209,127 @@ app.post('/admin', (req, res) => {
     } else {
         res.redirect('/');
     }
+});
+
+app.get('/admin-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
+app.get('/admin/vote', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-vote.html'));
+});
+
+app.get('/admin/edit-privacy-policy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-edit-privacy-policy.html'));
+});
+
+app.post('/admin/vote', (req, res) => {
+    const { currentVote: newCurrentVote, answers: newAnswers, endTime: newEndTime } = req.body;
+    currentVote = newCurrentVote;
+    answers = newAnswers;
+    endTime = newEndTime;
+    votes = newAnswers.reduce((acc, answer) => {
+        acc[answer] = 0;
+        return acc;
+    }, {});
+    votedUsers.clear(); // Set zurücksetzen, wenn eine neue Abstimmung erstellt wird
+    res.json({ success: true });
+});
+
+app.post('/admin/delete-user', (req, res) => {
+    const { username } = req.body;
+    users = users.filter(user => user.username !== username);
+    saveUsers(); // Benutzerkonten speichern
+    res.json({ success: true });
+});
+
+app.post('/admin/delete-all-users', (req, res) => {
+    users = [];
+    saveUsers(); // Benutzerkonten speichern
+    res.json({ success: true });
+});
+
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'register.html'));
+});
+
+app.post('/register', (req, res) => {
+    const { email, username, password } = req.body;
+    const emailExists = users.some(user => user.email === email);
+    const usernameExists = users.some(user => user.username === username);
+
+    if (emailExists) {
+        res.json({ error: 'Diese E-Mail ist bereits in Nutzung.' });
+    } else if (usernameExists) {
+        res.json({ error: 'Dieser Benutzername ist bereits in Nutzung.' });
+    } else {
+        users.push({ email, username, password });
+        saveUsers(); // Benutzerkonten speichern
+        logActivity(`${username} hat sich registriert`);
+        res.json({ success: true, message: 'Registrierung erfolgreich! Sie werden zur Startseite weitergeleitet.' });
+    }
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+const loginLogFilePath = path.join(__dirname, 'login-log.txt'); // Pfad zur Login-Log-Datei
+
+function logLogin(username) {
+    const logEntry = `${new Date().toISOString()} - ${username} hat sich eingeloggt\n`;
+    fs.appendFileSync(loginLogFilePath, logEntry, 'utf8');
+}
+
+const activityLogFilePath = path.join(__dirname, 'activity-log.txt'); // Pfad zur Aktivitäts-Log-Datei
+
+function logActivity(activity) {
+    const logEntry = `${new Date().toISOString()} - ${activity}\n`;
+    fs.appendFileSync(activityLogFilePath, logEntry, 'utf8');
+}
+
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const user = users.find(user => user.username === username && user.password === password);
+
+    if (user) {
+        req.session.user = user; // Speichere den Benutzer in der Session
+        logLogin(username); // Logge den Login
+        logActivity(`${username} hat sich eingeloggt`);
+        loginStatus.loggedOut = false; // Setze den Status auf eingeloggt
+        loginStatus.ip = req.ip; // Speichere die IP-Adresse
+        saveLoginStatus(); // Login-Status speichern
+        res.json({ success: true, message: 'Erfolgreich eingeloggt!' });
+    } else {
+        res.json({ error: 'Ungültiger Benutzername oder Passwort.' });
+    }
+});
+
+app.use((req, res, next) => {
+    if (req.session.user) {
+        res.locals.user = req.session.user;
+    }
+    next();
+});
+
+// Middleware zum Überprüfen der Authentifizierung
+function isAuthenticated(req, res, next) {
+    if (req.session.user) {
+        return next();
+    } else {
+        res.redirect('/login');
+    }
+}
+
+// Beispiel für eine geschützte Route
+app.get('/protected', isAuthenticated, (req, res) => {
+    res.send('Dies ist eine geschützte Seite.');
+    logActivity(`${req.session.user.username} hat die geschützte Seite aufgerufen`);
+});
+
+// Beispiel für eine geschützte Route
+app.get('/vote', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, 'vote.html'));
 });
 
 app.get('/admin-dashboard', (req, res) => {
@@ -187,7 +380,8 @@ app.post('/register', (req, res) => {
     } else {
         users.push({ email, username, password });
         saveUsers(); // Benutzerkonten speichern
-        res.json({ success: true });
+        logActivity(`${username} hat sich registriert`);
+        res.json({ success: true, message: 'Registrierung erfolgreich! Sie werden zur Startseite weitergeleitet.' });
     }
 });
 
@@ -230,6 +424,13 @@ app.get('/messages', (req, res) => {
     res.json(messages);
 });
 
+app.post('/send-message', (req, res) => {
+    const { username, content } = req.body;
+    messages.push({ username, content });
+    logActivity(`${username} hat eine Nachricht gesendet: ${content}`);
+    res.json({ success: true });
+});
+
 app.get('/users', (req, res) => {
     res.json(users);
 });
@@ -265,8 +466,9 @@ app.post('/reset-password', (req, res) => {
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.error('Fehler beim Senden der E-Mail:', error);
-                res.json({ error: 'Fehler beim Senden der E-Mail.' });
+                res.json({ error: 'Fehler beim Senden der E-Mail.', details: error.message });
             } else {
+                console.log('E-Mail gesendet: ' + info.response);
                 res.json({ success: 'E-Mail zum Zurücksetzen des Passworts wurde gesendet.' });
             }
         });
@@ -456,23 +658,111 @@ app.get('/contact', (req, res) => {
     res.sendFile(path.join(__dirname, 'contact.html'));
 });
 
+app.get('/qanda', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, 'qanda.html'));
+});
+
+// Route für die Log-Seite
+app.get('/logs', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, 'logs.html'));
+});
+
+// Route zum Abrufen der Log-Daten
+app.get('/logs-data', isAuthenticated, (req, res) => {
+    fs.readFile(activityLogFilePath, 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).send('Fehler beim Laden der Log-Daten.');
+        }
+        res.send(data);
+    });
+});
+
+// Route zum Abrufen aller Beiträge
+app.get('/posts', (req, res) => {
+    res.json(posts);
+});
+
+// Route zum Erstellen eines neuen Beitrags
+app.post('/posts', (req, res) => {
+    const { title, description, username } = req.body;
+    const newPost = {
+        id: crypto.randomBytes(16).toString('hex'),
+        title,
+        description,
+        username,
+        answers: []
+    };
+    posts.push(newPost);
+    savePosts(); // Beiträge speichern
+    res.json({ success: true, post: newPost });
+});
+
+// Route zum Hinzufügen einer Antwort zu einem Beitrag
+app.post('/posts/:id/answers', (req, res) => {
+    const { id } = req.params;
+    const { username, content } = req.body;
+    const post = posts.find(post => post.id === id);
+    if (post) {
+        post.answers.push({ username, content });
+        savePosts(); // Beiträge speichern
+        res.json({ success: true, post });
+    } else {
+        res.status(404).json({ error: 'Beitrag nicht gefunden.' });
+    }
+});
+
+app.post('/posts/:id/delete', (req, res) => {
+    const { id } = req.params;
+    const postIndex = posts.findIndex(post => post.id === id);
+    if (postIndex !== -1) {
+        const post = posts[postIndex];
+        if (post.username === req.session.user.username) {
+            posts.splice(postIndex, 1);
+            savePosts(); // Beiträge speichern
+            res.json({ success: true });
+        } else {
+            res.status(403).json({ error: 'Sie sind nicht berechtigt, diesen Beitrag zu löschen.' });
+        }
+    } else {
+        res.status(404).json({ error: 'Beitrag nicht gefunden.' });
+    }
+});
+
 // Fehler-Middleware hinzufügen
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).sendFile(path.join(__dirname, 'error.html'));
 });
 
-const server = app.listen(port, () => {
-    console.log(`Server läuft auf http://localhost:${port}`);
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).send('Fehler beim Ausloggen.');
+        }
+        loginStatus.loggedOut = true; // Setze den Status auf ausgeloggt
+        loginStatus.ip = null; // Lösche die gespeicherte IP-Adresse
+        saveLoginStatus(); // Login-Status speichern
+        res.sendFile(path.join(__dirname, 'logout.html'));
+    });
 });
 
-server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${port} ist bereits in Verwendung. Versuche, einen anderen Port zu verwenden.`);
-        const newServer = app.listen(0, () => {
-            console.log(`Server läuft auf http://localhost:${newServer.address().port}`);
-        });
-    } else {
-        throw err;
-    }
+app.get('/logout-status', (req, res) => {
+    res.json(loginStatus);
 });
+
+function startServer(port) {
+    const server = app.listen(port, () => {
+        console.log(`Server läuft auf http://localhost:${port}`);
+    });
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`Port ${port} ist bereits in Verwendung. Versuche, einen anderen Port zu verwenden.`);
+            startServer(0); // Versuche, einen zufälligen verfügbaren Port zu verwenden
+        } else {
+            throw err;
+        }
+    });
+}
+
+startServer(port);

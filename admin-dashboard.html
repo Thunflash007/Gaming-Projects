@@ -42,6 +42,9 @@
             cursor: pointer;
             border-radius: 4px;
         }
+        .user-item select {
+            margin-left: 10px;
+        }
         .upload-form, .add-member-form, .add-category-form, .delete-member-form, .reorder-category-form, .reorder-member-form {
             margin-top: 20px;
         }
@@ -66,6 +69,9 @@
         .list-item .delete-button {
             background-color: #dc3545;
         }
+        .admin-username {
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -75,6 +81,7 @@
         <a href="/admin/vote">Abstimmung festlegen</a>
         <a href="/privacy-policy">Datenschutz</a> <!-- Link zur Datenschutzseite hinzugefügt -->
         <a href="/admin/edit-privacy-policy">Datenschutz bearbeiten</a> <!-- Link zur neuen Seite hinzugefügt -->
+        <a href="/logs">Aktivitäts-Logs</a> <!-- Link zur Log-Seite hinzugefügt -->
     </div>
     <h1>Willkommen im Admin Dashboard</h1>
     <div id="registered-users">
@@ -143,6 +150,13 @@
         <button onclick="saveMemberOrder()">Reihenfolge speichern</button>
         <div id="reorder-member-success" class="success-message" style="display: none;">Mitglieder erfolgreich neu angeordnet!</div>
     </div>
+    <div class="delete-all-users-form">
+        <h2>Alle Benutzerkonten löschen</h2>
+        <form id="delete-all-users-form">
+            <button type="submit">Alle Benutzerkonten löschen</button>
+        </form>
+        <div id="delete-all-users-success" class="success-message" style="display: none;">Alle Benutzerkonten erfolgreich gelöscht!</div>
+    </div>
     <script>
         function toggleMenu() {
             const menu = document.getElementById('menu');
@@ -178,7 +192,10 @@
                     users.forEach(user => {
                         const listItem = document.createElement('li');
                         listItem.className = 'user-item';
-                        listItem.innerHTML = `Benutzername: ${user.username} <button onclick="deleteUser('${user.username}')">Löschen</button>`;
+                        listItem.innerHTML = `
+                            Benutzername: ${user.username}
+                            <button onclick="deleteUser('${user.username}')">Löschen</button>
+                        `;
                         usersList.appendChild(listItem);
                     });
                 });
@@ -398,6 +415,25 @@
                     loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
                 } else {
                     alert('Fehler beim Löschen des Teammitglieds.');
+                }
+            });
+        });
+
+        document.getElementById('delete-all-users-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            fetch('/admin/delete-all-users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('delete-all-users-success').style.display = 'block';
+                    loadUsers(); // Aktualisiere die Benutzerliste
+                } else {
+                    alert('Fehler beim Löschen der Benutzerkonten.');
                 }
             });
         });

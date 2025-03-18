@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Logout</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .message {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 100%;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Erfolgreich ausgeloggt</h1>
+    <div class="message">
+        <p>Sie wurden erfolgreich ausgeloggt.</p>
+        <a href="/">Zurück zur Startseite</a>
+    </div>
+    <script>
+        function updateMenuForLoggedOutUser() {
+            document.getElementById('delete-account-link').style.display = 'none';
+            document.getElementById('edit-profile-link').style.display = 'none';
+            document.getElementById('logout-link').style.display = 'none';
+            document.getElementById('login-link').style.display = 'block';
+            document.getElementById('register-link').style.display = 'block';
+        }
+
+        // Aktualisiere das Menü nach dem Ausloggen
+        updateMenuForLoggedOutUser();
+    </script>
+</body>
+</html>
