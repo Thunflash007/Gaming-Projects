@@ -1,4 +1,4 @@
-name: Start Server
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  start-server:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,11 +22,11 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Start server
-      run: npm run start-pm2
+    - name: Build project
+      run: npm run build # Passe diesen Schritt an, falls du einen Build-Schritt hast
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
-        personal_token: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-        publish_dir: ./ # Set this to the directory containing your index.html
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./ # Stelle sicher, dass dies das Verzeichnis ist, das die index.html enthält
