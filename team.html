@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Unser Team</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .team-member {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 100%;
+            max-width: 400px;
+        }
+        .team-member img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        #menu-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+        #menu {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            display: none;
+            background-color: white;
+            border: 1px solid black;
+            padding: 10px;
+        }
+        #menu a {
+            display: block;
+            margin: 5px 0;
+        }
+        #submenu, #profile-submenu, #info-submenu {
+            display: none;
+            margin-top: 10px;
+        }
+        #submenu a, #profile-submenu a, #info-submenu a {
+            display: block;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="menu-button" onclick="toggleMenu()">☰</div>
+    <div id="menu">
+        <a href="/">Startseite</a>
+        <a href="/admin">Admin Bereich</a>
+        <div onclick="toggleSubmenu()">Aktuelles ▼</div>
+        <div id="submenu">
+            <a href="/vote">Abstimmung</a>
+        </div>
+        <div onclick="toggleProfileSubmenu()">Profil ▼</div>
+        <div id="profile-submenu">
+            <a href="/register">Registrieren</a>
+            <a href="/delete-account">Account löschen</a>
+        </div>
+        <div onclick="toggleInfoSubmenu()">Info ▼</div>
+        <div id="info-submenu">
+            <a href="/privacy-policy">Datenschutz</a>
+            <a href="/team">Unser Team</a>
+        </div>
+    </div>
+    <h1>Unser Team</h1>
+    <div id="team-container">
+        <!-- Teammitglieder werden hier eingefügt -->
+    </div>
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'block';
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+
+        function toggleSubmenu() {
+            const submenu = document.getElementById('submenu');
+            if (submenu.style.display === 'none' || submenu.style.display === '') {
+                submenu.style.display = 'block';
+            } else {
+                submenu.style.display = 'none';
+            }
+        }
+
+        function toggleProfileSubmenu() {
+            const profileSubmenu = document.getElementById('profile-submenu');
+            if (profileSubmenu.style.display === 'none' || profileSubmenu.style.display === '') {
+                profileSubmenu.style.display = 'block';
+            } else {
+                profileSubmenu.style.display = 'none';
+            }
+        }
+
+        function toggleInfoSubmenu() {
+            const infoSubmenu = document.getElementById('info-submenu');
+            if (infoSubmenu.style.display === 'none' || infoSubmenu.style.display === '') {
+                infoSubmenu.style.display = 'block';
+            } else {
+                infoSubmenu.style.display = 'none';
+            }
+        }
+
+        fetch('/team-members')
+            .then(response => response.json())
+            .then(data => {
+                const teamContainer = document.getElementById('team-container');
+                Object.keys(data).forEach(category => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'team-member';
+                    categoryDiv.innerHTML = `<h2>${category}</h2>`;
+                    data[category].forEach(member => {
+                        const memberDiv = document.createElement('div');
+                        memberDiv.innerHTML = `<img src="/uploads/${member}.jpg" alt="${member}"><p>${member}</p>`;
+                        categoryDiv.appendChild(memberDiv);
+                    });
+                    teamContainer.appendChild(categoryDiv);
+                });
+            });
+    </script>
+</body>
+</html>

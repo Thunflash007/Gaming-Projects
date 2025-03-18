@@ -1,0 +1,22 @@
+{
+  "name": "gaming-projects",
+  "version": "1.0.0",
+  "description": "Ein einfacher Webserver für die Gaming Projects Website",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start-pm2": "npm run install-pm2 && pm2 start server.js --name gaming-projects -f",
+    "install-pm2": "npm install -g pm2",
+    "install-express-session": "npm install express-session",
+    "install-connect-mongo": "npm install connect-mongo"
+  },
+  "dependencies": {
+    "connect-mongo": "^4.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-session": "^1.18.1",
+    "multer": "^1.4.4",
+    "nodemailer": "^6.7.2",
+    "pm2": "^5.1.0"
+  }
+}

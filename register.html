@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Registrieren</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        input {
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 15px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .error {
+            color: red;
+            margin-bottom: 10px;
+        }
+        .back-link {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Registrieren</h1>
+    <form id="register-form" action="/register" method="post">
+        <div id="error-message" class="error"></div>
+        <input type="email" id="email" name="email" placeholder="Ihre E-Mail" required>
+        <input type="text" id="username" name="username" placeholder="Benutzername" required>
+        <input type="password" id="password" name="password" placeholder="Passwort" required>
+        <button type="submit">Registrieren</button>
+    </form>
+    <div id="back-link" class="back-link" style="display: none;">
+        <a href="/">Zurück zur Startseite</a>
+    </div>
+    <script>
+        document.getElementById('register-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('error-message').textContent = data.error;
+                } else {
+                    alert(data.message);
+                    window.location.href = '/';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

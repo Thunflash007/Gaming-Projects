@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <!-- ...existing code... -->
+    <title>Gaming Projects</title>
+    <style>
+        body {
+            text-align: center;
+        }
+        hr {
+            border: 1px solid black;
+            width: 100%;
+        }
+        #menu-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+        #menu {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            display: none;
+            background-color: white;
+            border: 1px solid black;
+            padding: 10px;
+        }
+        #menu a {
+            display: block;
+            margin: 5px 0;
+        }
+        #submenu, #profile-submenu, #info-submenu {
+            display: none;
+            margin-top: 10px;
+        }
+        #submenu a, #profile-submenu a, #info-submenu a {
+            display: block;
+            margin: 5px 0;
+        }
+        #vote-section {
+            margin-top: 20px;
+        }
+        #discord-section {
+            margin-top: 20px;
+        }
+    </style>
+    <!-- ...existing code... -->
+</head>
+<body>
+    <div id="menu-button" onclick="toggleMenu()">☰</div>
+    <div id="menu">
+        <a href="/admin">Admin Bereich</a>
+        <div onclick="toggleSubmenu()">Aktuelles ▼</div>
+        <div id="submenu">
+            <a href="/vote">Abstimmung</a>
+        </div>
+        <div onclick="toggleProfileSubmenu()">Profil ▼</div>
+        <div id="profile-submenu">
+            <a href="/register" id="register-link">Registrieren</a>
+            <a href="/login" id="login-link">Login</a>
+            <a href="/delete-account" id="delete-account-link" style="display: none;">Account löschen</a>
+            <a href="/edit-profile" id="edit-profile-link" style="display: none;">Profil bearbeiten</a>
+            <a href="javascript:logout()" id="logout-link" style="display: none;">Logout</a>
+        </div>
+        <div onclick="toggleInfoSubmenu()">Info ▼</div>
+        <div id="info-submenu">
+            <a href="/privacy-policy">Datenschutz</a>
+            <a href="/team">Unser Team</a>
+            <a href="/contact">Kontakt</a>
+            <a href="/qanda">Q&A</a>
+        </div>
+    </div>
+    <!-- ...existing code... -->
+    <h1>Gaming Projects</h1>
+    <hr>
+    <!-- ...existing code... -->
+    <div id="vote-section">
+        <h2>Aktuelle Abstimmung</h2>
+        <p id="current-vote"></p>
+        <p id="remaining-time"></p>
+        <div id="results"></div>
+        <a href="/vote">Zur Abstimmung</a>
+    </div>
+    <!-- ...existing code... -->
+    <div id="discord-section">
+        <h2>Unser Discord</h2>
+        <iframe id="discord-widget" src="https://discord.com/widget?id=1339552413744627783&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0"></iframe>
+    </div>
+    <!-- ...existing code... -->
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'block';
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+
+        function toggleSubmenu() {
+            const submenu = document.getElementById('submenu');
+            if (submenu.style.display === 'none' || submenu.style.display === '') {
+                submenu.style.display = 'block';
+            } else {
+                submenu.style.display = 'none';
+            }
+        }
+
+        function toggleProfileSubmenu() {
+            const profileSubmenu = document.getElementById('profile-submenu');
+            if (profileSubmenu.style.display === 'none' || profileSubmenu.style.display === '') {
+                profileSubmenu.style.display = 'block';
+            } else {
+                profileSubmenu.style.display = 'none';
+            }
+        }
+
+        function toggleInfoSubmenu() {
+            const infoSubmenu = document.getElementById('info-submenu');
+            if (infoSubmenu.style.display === 'none' || infoSubmenu.style.display === '') {
+                infoSubmenu.style.display = 'block';
+            } else {
+                infoSubmenu.style.display = 'none';
+            }
+        }
+
+        function updateVoteSection() {
+            fetch('/current-vote')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('current-vote').textContent = data.currentVote;
+                    document.getElementById('results').innerHTML = data.results.map(result => `<p>${result.answer}: ${result.votes} Stimmen</p>`).join('');
+                    const remainingTime = new Date(data.remainingTime);
+                    document.getElementById('remaining-time').textContent = `Verbleibende Zeit: ${remainingTime.getUTCHours()} Stunden, ${remainingTime.getUTCMinutes()} Minuten, ${remainingTime.getUTCSeconds()} Sekunden`;
+                });
+        }
+
+        function updateDiscordWidget() {
+            const discordWidget = document.getElementById('discord-widget');
+            const newWidget = discordWidget.cloneNode(true);
+            discordWidget.parentNode.replaceChild(newWidget, discordWidget);
+        }
+
+        function logout() {
+            fetch('/logout')
+                .then(response => {
+                    if (response.ok) {
+                        updateMenuForLoggedOutUser();
+                        window.location.href = '/';
+                    } else {
+                        alert('Fehler beim Ausloggen.');
+                    }
+                });
+        }
+
+        function updateMenuForLoggedOutUser() {
+            document.getElementById('delete-account-link').style.display = 'none';
+            document.getElementById('edit-profile-link').style.display = 'none';
+            document.getElementById('logout-link').style.display = 'none';
+            document.getElementById('login-link').style.display = 'block';
+            document.getElementById('register-link').style.display = 'block';
+        }
+
+        function updateMenuForLoggedInUser() {
+            document.getElementById('delete-account-link').style.display = 'block';
+            document.getElementById('edit-profile-link').style.display = 'block';
+            document.getElementById('logout-link').style.display = 'block';
+            document.getElementById('login-link').style.display = 'none';
+            document.getElementById('register-link').style.display = 'none';
+        }
+
+        function checkLoginStatus() {
+            fetch('/logout-status')
+                .then(response => response.json())
+                .then(status => {
+                    if (status.loggedOut) {
+                        updateMenuForLoggedOutUser();
+                    } else {
+                        fetch('/users')
+                            .then(response => response.json())
+                            .then(users => {
+                                if (users.length > 0) {
+                                    updateMenuForLoggedInUser();
+                                } else {
+                                    updateMenuForLoggedOutUser();
+                                }
+                            });
+                    }
+                });
+        }
+
+        // Überprüfen, ob der Benutzer eingeloggt ist oder ausgeloggt wurde
+        setInterval(checkLoginStatus, 1000);
+
+        // Aktualisiere die aktuelle Abstimmung und die verbleibende Zeit im Sekundentakt
+        setInterval(updateVoteSection, 1000);
+
+        // Aktualisiere das Discord-Widget alle 10 Sekunden
+        setInterval(updateDiscordWidget, 10000);
+    </script>
+    <!-- ...existing code... -->
+</body>
+</html>
