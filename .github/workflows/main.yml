@@ -3,7 +3,7 @@ name: Start Server
 on:
   push:
     branches:
-      - versuon-4
+      - open
   workflow_dispatch:
 
 jobs:
