@@ -205,9 +205,9 @@ app.get('/Gaming-Projects/admin.html', (req, res) => {
 app.post('/Gaming-Projects/admin.html', (req, res) => {
     const { password } = req.body;
     if (password === '2q') {
-        res.sendFile(path.join(__dirname, 'Gaming-Projects/admin-dashboard.html'));
+        res.sendFile(path.join(__dirname, '/Gaming-Projects/admin-dashboard.html'));
     } else {
-        res.redirect('/');
+        res.redirect('/Gaming-Projects/index.html');
     }
 });
 
