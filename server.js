@@ -202,7 +202,7 @@ app.get('/Gaming-Projects/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'Gaming-Projects/admin.html'));
 });
 
-app.post('/Gaming-Projects/admin.html', (req, res) => {
+app.post('/Gaming-Projects/admin/admin-dashboard.html', (req, res) => {
     const { password } = req.body;
     if (password === '2q') {
         res.sendFile(path.join(__dirname, '/Gaming-Projects/admin-dashboard.html'));
