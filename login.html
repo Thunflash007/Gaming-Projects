@@ -49,12 +49,12 @@
 <body>
     <h1>Login</h1>
     <form id="login-form">
-        <div id="error-message" class="error"></div>
+        <div id="error-message" class="error">Error</div>
         <div id="success-message" class="success" style="display: none; color: green; margin-bottom: 10px;"></div>
         <input type="text" id="username" name="username" placeholder="Benutzername" required>
         <input type="password" id="password" name="password" placeholder="Passwort" required>
         <button type="submit">Einloggen</button>
-        <button type="submit">Abschließen</button>
+        <toggle type="sibmit">test</toggle>
     </form>
     <script>
         document.getElementById('login-form').addEventListener('submit', function(event) {
