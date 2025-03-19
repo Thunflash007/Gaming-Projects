@@ -194,36 +194,36 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+app.get('/Gaming-Projects/index.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Gaming-Projects/index.html'));
 });
 
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
+app.get('/Gaming-Projects/admin.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Gaming-Projects/admin.html'));
 });
 
-app.post('/admin', (req, res) => {
+app.post('/Gaming-Projects/admin.html', (req, res) => {
     const { password } = req.body;
     if (password === '2q') {
-        res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+        res.sendFile(path.join(__dirname, 'Gaming-Projects/admin-dashboard.html'));
     } else {
         res.redirect('/');
     }
 });
 
-app.get('/admin-dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+app.get('/Gaming-Projects/admin-dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Gaming-Projects/admin-dashboard.html'));
 });
 
-app.get('/admin/vote', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-vote.html'));
+app.get('/Gaming-Projects/admin/vote.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Gaming-Projects/admin-vote.html'));
 });
 
-app.get('/admin/edit-privacy-policy', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-edit-privacy-policy.html'));
+app.get('/Gaming-Projects/admin/edit-privacy-policy.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Gaming-Projects/admin-edit-privacy-policy.html'));
 });
 
-app.post('/admin/vote', (req, res) => {
+app.post('/Gaming-Projects/admin/vote.html', (req, res) => {
     const { currentVote: newCurrentVote, answers: newAnswers, endTime: newEndTime } = req.body;
     currentVote = newCurrentVote;
     answers = newAnswers;
@@ -236,7 +236,7 @@ app.post('/admin/vote', (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/admin/delete-user', (req, res) => {
+app.post('/Gaming-Projects/admin/delete-user.html', (req, res) => {
     const { username } = req.body;
     users = users.filter(user => user.username !== username);
     saveUsers(); // Benutzerkonten speichern
@@ -249,11 +249,11 @@ app.post('/admin/delete-all-users', (req, res) => {
     res.json({ success: true });
 });
 
-app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'register.html'));
+app.get('/Gaming-Projects/register.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Gaming-Projects/register.html'));
 });
 
-app.post('/register', (req, res) => {
+app.post('/Gaming-Projects/register.html', (req, res) => {
     const { email, username, password } = req.body;
     const emailExists = users.some(user => user.email === email);
     const usernameExists = users.some(user => user.username === username);
@@ -270,8 +270,8 @@ app.post('/register', (req, res) => {
     }
 });
 
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
+app.get('/Gaming-Projects/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Gaming-Projects/login.html'));
 });
 
 const loginLogFilePath = path.join(__dirname, 'login-log.txt'); // Pfad zur Login-Log-Datei
@@ -288,7 +288,7 @@ function logActivity(activity) {
     fs.appendFileSync(activityLogFilePath, logEntry, 'utf8');
 }
 
-app.post('/login', (req, res) => {
+app.post('/Gaming-Projects/login.html', (req, res) => {
     const { username, password } = req.body;
     const user = users.find(user => user.username === username && user.password === password);
 
@@ -328,7 +328,7 @@ app.get('/protected', isAuthenticated, (req, res) => {
 });
 
 // Beispiel für eine geschützte Route
-app.get('/vote', isAuthenticated, (req, res) => {
+app.get('/Gaming-Projects/vote', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'vote.html'));
 });
 
