@@ -7,7 +7,6 @@ const nodemailer = require('nodemailer'); // nodemailer-Modul importieren
 const multer = require('multer'); // multer-Modul importieren
 const cors = require('cors'); // cors-Modul importieren
 const session = require('express-session'); // Session-Modul importieren
-const MongoStore = require('connect-mongo'); // MongoStore-Modul importieren
 const app = express();
 const port = process.env.PORT || 4000; // Port auf 4000 geändert
 
@@ -124,34 +123,9 @@ function savePosts() {
     fs.writeFileSync('posts.json', JSON.stringify(posts, null, 2));
 }
 
-// Login-Status aus Datei laden
-function loadLoginStatus() {
-    if (fs.existsSync('login-status.json')) {
-        const data = fs.readFileSync('login-status.json', 'utf8');
-        if (data) {
-            loginStatus = JSON.parse(data);
-            if (loginStatus.ip) {
-                loginStatus.ip = decryptIP(loginStatus.ip);
-            }
-        }
-    }
-}
-
-// Login-Status in Datei speichern
-function saveLoginStatus() {
-    if (loginStatus.ip) {
-        loginStatus.ip = encryptIP(loginStatus.ip);
-    }
-    fs.writeFileSync('login-status.json', JSON.stringify(loginStatus, null, 2));
-    if (loginStatus.ip) {
-        loginStatus.ip = decryptIP(loginStatus.ip);
-    }
-}
-
 loadUsers();
 loadTeamMembers();
 loadPosts(); // Beiträge laden
-loadLoginStatus(); // Login-Status laden
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -164,10 +138,6 @@ app.use(session({
     secret: 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: 'mongodb://localhost:27017/sessions', // URL zu Ihrer MongoDB-Datenbank
-        collectionName: 'sessions'
-    }),
     cookie: { secure: false } // Setze auf true, wenn HTTPS verwendet wird
 }));
 
@@ -224,7 +194,7 @@ app.get('/admin/edit-privacy-policy', (req, res) => {
 });
 
 app.post('/admin/vote', (req, res) => {
-    const { currentVote: newCurrentVote, answers: newAnswers, endTime: newEndTime } = req.body;
+    const { currentVote: newCurrentVote, allowCustomAnswers, answers: newAnswers, endTime: newEndTime } = req.body;
     currentVote = newCurrentVote;
     answers = newAnswers;
     endTime = newEndTime;
@@ -249,6 +219,20 @@ app.post('/admin/delete-all-users', (req, res) => {
     res.json({ success: true });
 });
 
+app.post('/admin/end-vote', (req, res) => {
+    endTime = new Date().toISOString(); // Setze die Endzeit auf die aktuelle Zeit
+    res.json({ success: true });
+});
+
+app.post('/admin/delete-vote', (req, res) => {
+    currentVote = '';
+    answers = [];
+    endTime = '';
+    votes = {};
+    votedUsers.clear();
+    res.json({ success: true });
+});
+
 app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, 'register.html'));
 });
@@ -266,6 +250,9 @@ app.post('/register', (req, res) => {
         users.push({ email, username, password });
         saveUsers(); // Benutzerkonten speichern
         logActivity(`${username} hat sich registriert`);
+        req.session.user = { email, username }; // Benutzer in der Session speichern
+        loginStatus.loggedOut = false; // Setze den Status auf eingeloggt
+        loginStatus.ip = req.ip; // Speichere die IP-Adresse
         res.json({ success: true, message: 'Registrierung erfolgreich! Sie werden zur Startseite weitergeleitet.' });
     }
 });
@@ -298,7 +285,6 @@ app.post('/login', (req, res) => {
         logActivity(`${username} hat sich eingeloggt`);
         loginStatus.loggedOut = false; // Setze den Status auf eingeloggt
         loginStatus.ip = req.ip; // Speichere die IP-Adresse
-        saveLoginStatus(); // Login-Status speichern
         res.json({ success: true, message: 'Erfolgreich eingeloggt!' });
     } else {
         res.json({ error: 'Ungültiger Benutzername oder Passwort.' });
@@ -345,7 +331,7 @@ app.get('/admin/edit-privacy-policy', (req, res) => {
 });
 
 app.post('/admin/vote', (req, res) => {
-    const { currentVote: newCurrentVote, answers: newAnswers, endTime: newEndTime } = req.body;
+    const { currentVote: newCurrentVote, allowCustomAnswers, answers: newAnswers, endTime: newEndTime } = req.body;
     currentVote = newCurrentVote;
     answers = newAnswers;
     endTime = newEndTime;
@@ -381,6 +367,9 @@ app.post('/register', (req, res) => {
         users.push({ email, username, password });
         saveUsers(); // Benutzerkonten speichern
         logActivity(`${username} hat sich registriert`);
+        req.session.user = { email, username }; // Benutzer in der Session speichern
+        loginStatus.loggedOut = false; // Setze den Status auf eingeloggt
+        loginStatus.ip = req.ip; // Speichere die IP-Adresse
         res.json({ success: true, message: 'Registrierung erfolgreich! Sie werden zur Startseite weitergeleitet.' });
     }
 });
@@ -414,355 +403,15 @@ app.post('/vote', (req, res) => {
     selectedAnswers.forEach(answer => {
         if (votes[answer] !== undefined) {
             votes[answer]++;
+        } else if (allowCustomAnswers) {
+            votes[answer] = 1;
+            answers.push(answer); // Füge die neue Antwort zur Liste der Antworten hinzu
         }
     });
     votedUsers.add(username); // Benutzer zur Liste der Abstimmenden hinzufügen
     res.json({ success: true });
 });
 
-app.get('/messages', (req, res) => {
-    res.json(messages);
+app.listen(port, () => {
+    console.log(`Server läuft auf Port ${port}`);
 });
-
-app.post('/send-message', (req, res) => {
-    const { username, content } = req.body;
-    messages.push({ username, content });
-    logActivity(`${username} hat eine Nachricht gesendet: ${content}`);
-    res.json({ success: true });
-});
-
-app.get('/users', (req, res) => {
-    res.json(users);
-});
-
-app.get('/current-vote', (req, res) => {
-    const remainingTime = new Date(endTime) - new Date();
-    res.json({ currentVote, results: Object.entries(votes).map(([answer, votes]) => ({ answer, votes })), remainingTime });
-});
-
-app.get('/reset-password', (req, res) => {
-    res.sendFile(path.join(__dirname, 'reset-password-request.html'));
-});
-
-app.post('/reset-password', (req, res) => {
-    const { email } = req.body;
-    const user = users.find(user => user.email === email);
-
-    if (user) {
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetLink = `http://localhost:${port}/reset-password/${resetToken}`;
-
-        // Speichere den Reset-Token im Benutzerobjekt
-        user.resetToken = resetToken;
-        saveUsers();
-
-        const mailOptions = {
-            from: 'your-email@gmail.com',
-            to: email,
-            subject: 'Passwort zurücksetzen',
-            text: `Klicken Sie auf den folgenden Link, um Ihr Passwort zurückzusetzen: ${resetLink}`
-        };
-
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Fehler beim Senden der E-Mail:', error);
-                res.json({ error: 'Fehler beim Senden der E-Mail.', details: error.message });
-            } else {
-                console.log('E-Mail gesendet: ' + info.response);
-                res.json({ success: 'E-Mail zum Zurücksetzen des Passworts wurde gesendet.' });
-            }
-        });
-    } else {
-        res.json({ error: 'E-Mail nicht gefunden.' });
-    }
-});
-
-app.get('/reset-password/:token', (req, res) => {
-    const { token } = req.params;
-    const user = users.find(user => user.resetToken === token);
-
-    if (user) {
-        res.sendFile(path.join(__dirname, 'reset-password.html'));
-    } else {
-        res.status(400).send('Ungültiger oder abgelaufener Token.');
-    }
-});
-
-app.post('/reset-password/:token', (req, res) => {
-    const { token } = req.params;
-    const { username, password } = req.body;
-    const user = users.find(user => user.resetToken === token);
-
-    if (user) {
-        user.username = username;
-        user.password = password;
-        delete user.resetToken; // Entferne den Reset-Token nach erfolgreichem Zurücksetzen
-        saveUsers();
-        res.json({ success: 'Benutzername und Passwort erfolgreich zurückgesetzt.' });
-    } else {
-        res.status(400).json({ error: 'Ungültiger oder abgelaufener Token.' });
-    }
-});
-
-app.get('/delete-account', (req, res) => {
-    res.sendFile(path.join(__dirname, 'delete-account.html'));
-});
-
-app.post('/delete-account', (req, res) => {
-    const { email, username, password } = req.body;
-    const userIndex = users.findIndex(user => user.email === email && user.username === username && user.password === password);
-
-    if (userIndex !== -1) {
-        users.splice(userIndex, 1);
-        saveUsers();
-        res.json({ success: 'Account erfolgreich gelöscht.' });
-    } else {
-        res.json({ error: 'Ungültige E-Mail, Benutzername oder Passwort.' });
-    }
-});
-
-app.get('/team', (req, res) => {
-    res.sendFile(path.join(__dirname, 'team.html'));
-});
-
-app.get('/team-members', (req, res) => {
-    res.json(teamMembers);
-});
-
-app.post('/upload-profile-pic', upload.single('profilePic'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'Fehler beim Hochladen der Datei.' });
-    }
-    res.json({ success: true });
-});
-
-app.post('/add-member', (req, res) => {
-    const { newMemberName, newMemberCategory } = req.body;
-    if (!teamMembers[newMemberCategory]) {
-        return res.status(400).json({ error: 'Kategorie nicht gefunden.' });
-    }
-    teamMembers[newMemberCategory].push(newMemberName);
-    saveTeamMembers();
-    res.json({ success: true });
-});
-
-app.post('/add-category', (req, res) => {
-    const { newCategoryName } = req.body;
-    if (teamMembers[newCategoryName]) {
-        return res.status(400).json({ error: 'Kategorie existiert bereits.' });
-    }
-    teamMembers[newCategoryName] = [];
-    saveTeamMembers();
-    res.json({ success: true });
-});
-
-app.post('/delete-member', (req, res) => {
-    const { deleteMemberName } = req.body;
-    let memberFound = false;
-    Object.keys(teamMembers).forEach(category => {
-        const memberIndex = teamMembers[category].indexOf(deleteMemberName);
-        if (memberIndex !== -1) {
-            teamMembers[category].splice(memberIndex, 1);
-            memberFound = true;
-        }
-    });
-    if (memberFound) {
-        saveTeamMembers();
-        res.json({ success: true });
-    } else {
-        res.status(400).json({ error: 'Teammitglied nicht gefunden.' });
-    }
-});
-
-app.post('/reorder-categories', (req, res) => {
-    const { categoryOrder } = req.body;
-    const newTeamMembers = {};
-    categoryOrder.forEach(category => {
-        if (teamMembers[category]) {
-            newTeamMembers[category] = teamMembers[category];
-        }
-    });
-    teamMembers = newTeamMembers;
-    saveTeamMembers();
-    res.json({ success: true });
-});
-
-app.post('/reorder-members', (req, res) => {
-    const { memberOrder } = req.body;
-    const newTeamMembers = {};
-    Object.keys(teamMembers).forEach(category => {
-        newTeamMembers[category] = [];
-    });
-    memberOrder.forEach(member => {
-        Object.keys(teamMembers).forEach(category => {
-            if (teamMembers[category].includes(member)) {
-                newTeamMembers[category].push(member);
-            }
-        });
-    });
-    teamMembers = newTeamMembers;
-    saveTeamMembers();
-    res.json({ success: true });
-});
-
-app.post('/delete-category', (req, res) => {
-    const { category } = req.body;
-    if (teamMembers[category]) {
-        delete teamMembers[category];
-        saveTeamMembers();
-        res.json({ success: true });
-    } else {
-        res.status(400).json({ error: 'Kategorie nicht gefunden.' });
-    }
-});
-
-app.get('/privacy-policy', (req, res) => {
-    res.sendFile(path.join(__dirname, 'privacy-policy.html'));
-});
-
-// Route zum Abrufen des Datenschutzinhalts
-app.get('/privacy-policy-content', (req, res) => {
-    fs.readFile(path.join(__dirname, 'privacy-policy.html'), 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).send('Fehler beim Laden des Datenschutzinhalts.');
-        }
-        // Extrahiere nur den angezeigten Text
-        const contentMatch = data.match(/<div class="content">([\s\S]*?)<\/div>/);
-        if (contentMatch) {
-            res.send(contentMatch[1]);
-        } else {
-            res.status(500).send('Fehler beim Extrahieren des Datenschutzinhalts.');
-        }
-    });
-});
-
-// Route zum Aktualisieren des Datenschutzinhalts
-app.post('/admin/edit-privacy-policy', (req, res) => {
-    const { privacyPolicyContent } = req.body;
-    fs.readFile(path.join(__dirname, 'privacy-policy.html'), 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: 'Fehler beim Laden des Datenschutzinhalts.' });
-        }
-        // Ersetze den angezeigten Text
-        const updatedData = data.replace(/<div class="content">([\s\S]*?)<\/div>/, `<div class="content">${privacyPolicyContent}</div>`);
-        fs.writeFile(path.join(__dirname, 'privacy-policy.html'), updatedData, 'utf8', (err) => {
-            if (err) {
-                return res.status(500).json({ success: false, message: 'Fehler beim Speichern des Datenschutzinhalts.' });
-            }
-            res.json({ success: true });
-        });
-    });
-});
-
-app.get('/contact', (req, res) => {
-    res.sendFile(path.join(__dirname, 'contact.html'));
-});
-
-app.get('/qanda', isAuthenticated, (req, res) => {
-    res.sendFile(path.join(__dirname, 'qanda.html'));
-});
-
-// Route für die Log-Seite
-app.get('/logs', isAuthenticated, (req, res) => {
-    res.sendFile(path.join(__dirname, 'logs.html'));
-});
-
-// Route zum Abrufen der Log-Daten
-app.get('/logs-data', isAuthenticated, (req, res) => {
-    fs.readFile(activityLogFilePath, 'utf8', (err, data) => {
-        if (err) {
-            return res.status(500).send('Fehler beim Laden der Log-Daten.');
-        }
-        res.send(data);
-    });
-});
-
-// Route zum Abrufen aller Beiträge
-app.get('/posts', (req, res) => {
-    res.json(posts);
-});
-
-// Route zum Erstellen eines neuen Beitrags
-app.post('/posts', (req, res) => {
-    const { title, description, username } = req.body;
-    const newPost = {
-        id: crypto.randomBytes(16).toString('hex'),
-        title,
-        description,
-        username,
-        answers: []
-    };
-    posts.push(newPost);
-    savePosts(); // Beiträge speichern
-    res.json({ success: true, post: newPost });
-});
-
-// Route zum Hinzufügen einer Antwort zu einem Beitrag
-app.post('/posts/:id/answers', (req, res) => {
-    const { id } = req.params;
-    const { username, content } = req.body;
-    const post = posts.find(post => post.id === id);
-    if (post) {
-        post.answers.push({ username, content });
-        savePosts(); // Beiträge speichern
-        res.json({ success: true, post });
-    } else {
-        res.status(404).json({ error: 'Beitrag nicht gefunden.' });
-    }
-});
-
-app.post('/posts/:id/delete', (req, res) => {
-    const { id } = req.params;
-    const postIndex = posts.findIndex(post => post.id === id);
-    if (postIndex !== -1) {
-        const post = posts[postIndex];
-        if (post.username === req.session.user.username) {
-            posts.splice(postIndex, 1);
-            savePosts(); // Beiträge speichern
-            res.json({ success: true });
-        } else {
-            res.status(403).json({ error: 'Sie sind nicht berechtigt, diesen Beitrag zu löschen.' });
-        }
-    } else {
-        res.status(404).json({ error: 'Beitrag nicht gefunden.' });
-    }
-});
-
-// Fehler-Middleware hinzufügen
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).sendFile(path.join(__dirname, 'error.html'));
-});
-
-app.get('/logout', (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            return res.status(500).send('Fehler beim Ausloggen.');
-        }
-        loginStatus.loggedOut = true; // Setze den Status auf ausgeloggt
-        loginStatus.ip = null; // Lösche die gespeicherte IP-Adresse
-        saveLoginStatus(); // Login-Status speichern
-        res.sendFile(path.join(__dirname, 'logout.html'));
-    });
-});
-
-app.get('/logout-status', (req, res) => {
-    res.json(loginStatus);
-});
-
-function startServer(port) {
-    const server = app.listen(port, () => {
-        console.log(`Server läuft auf http://localhost:${port}`);
-    });
-
-    server.on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-            console.error(`Port ${port} ist bereits in Verwendung. Versuche, einen anderen Port zu verwenden.`);
-            startServer(0); // Versuche, einen zufälligen verfügbaren Port zu verwenden
-        } else {
-            throw err;
-        }
-    });
-}
-
-startServer(port);

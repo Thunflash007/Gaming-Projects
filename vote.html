@@ -66,6 +66,10 @@
         <h2 id="current-vote"></h2>
         <form id="vote-form">
             <div id="answers"></div>
+            <div id="custom-answer-section" style="display: none;">
+                <input type="text" id="custom-answer" name="customAnswer" placeholder="Ihre eigene Antwort">
+                <button type="button" onclick="addCustomAnswer()">Antwort hinzufügen</button>
+            </div>
             <button type="submit">Abstimmen</button>
         </form>
     </div>
@@ -78,6 +82,7 @@
     </div>
     <script>
         let currentUsername = '';
+        let allowCustomAnswers = false;
 
         function checkLoginStatus() {
             fetch('/users')
@@ -96,6 +101,7 @@
             fetch('/current-vote')
                 .then(response => response.json())
                 .then(data => {
+                    allowCustomAnswers = data.allowCustomAnswers;
                     if (data.isEnded) {
                         document.getElementById('result-section').style.display = 'block';
                         document.getElementById('results').innerHTML = data.results.map(result => `<p>${result.answer}: ${result.votes} Stimmen</p>`).join('');
@@ -103,8 +109,22 @@
                         document.getElementById('vote-section').style.display = 'block';
                         document.getElementById('current-vote').textContent = data.currentVote;
                         document.getElementById('answers').innerHTML = data.answers.map(answer => `<div><input type="checkbox" name="answers" value="${answer}">${answer}</div>`).join('');
+                        if (allowCustomAnswers) {
+                            document.getElementById('custom-answer-section').style.display = 'block';
+                        }
                     }
                 });
+        }
+
+        function addCustomAnswer() {
+            const customAnswer = document.getElementById('custom-answer').value.trim();
+            if (customAnswer) {
+                const answersDiv = document.getElementById('answers');
+                const newAnswerDiv = document.createElement('div');
+                newAnswerDiv.innerHTML = `<div><input type="checkbox" name="answers" value="${customAnswer}" checked>${customAnswer}</div>`;
+                answersDiv.appendChild(newAnswerDiv);
+                document.getElementById('custom-answer').value = '';
+            }
         }
 
         document.getElementById('login-form').addEventListener('submit', function(event) {

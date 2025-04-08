@@ -46,9 +46,13 @@
     <h1>Admin Abstimmung</h1>
     <form id="vote-form">
         <input type="text" id="current-vote" name="currentVote" placeholder="Aktuelle Abstimmung" required>
+        <div>
+            <input type="checkbox" id="allow-custom-answers" name="allowCustomAnswers" onchange="toggleAnswerFields()">
+            <label for="allow-custom-answers">Individuelle Antworten erlauben</label>
+        </div>
         <div id="answers">
             <div class="answer">
-                <input type="text" name="answers" placeholder="Antwort" required>
+                <input type="text" name="answers" placeholder="Antwort">
                 <button type="button" onclick="removeAnswer(this)">Entfernen</button>
             </div>
         </div>
@@ -61,7 +65,7 @@
             const answersDiv = document.getElementById('answers');
             const newAnswerDiv = document.createElement('div');
             newAnswerDiv.className = 'answer';
-            newAnswerDiv.innerHTML = '<input type="text" name="answers" placeholder="Antwort" required><button type="button" onclick="removeAnswer(this)">Entfernen</button>';
+            newAnswerDiv.innerHTML = '<input type="text" name="answers" placeholder="Antwort"><button type="button" onclick="removeAnswer(this)">Entfernen</button>';
             answersDiv.appendChild(newAnswerDiv);
         }
 
@@ -69,10 +73,19 @@
             button.parentElement.remove();
         }
 
+        function toggleAnswerFields() {
+            const allowCustomAnswers = document.getElementById('allow-custom-answers').checked;
+            const answerFields = document.querySelectorAll('#answers input[name="answers"]');
+            answerFields.forEach(field => {
+                field.required = !allowCustomAnswers;
+            });
+        }
+
         document.getElementById('vote-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const currentVote = document.getElementById('current-vote').value;
-            const answers = Array.from(document.getElementsByName('answers')).map(input => input.value);
+            const allowCustomAnswers = document.getElementById('allow-custom-answers').checked;
+            const answers = Array.from(document.getElementsByName('answers')).map(input => input.value).filter(answer => answer.trim() !== '');
             const endTime = document.getElementById('end-time').value;
 
             fetch('/admin/vote', {
@@ -80,7 +93,7 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ currentVote, answers, endTime })
+                body: JSON.stringify({ currentVote, allowCustomAnswers, answers, endTime })
             })
             .then(response => response.json())
             .then(data => {

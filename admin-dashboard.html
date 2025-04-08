@@ -157,6 +157,12 @@
         </form>
         <div id="delete-all-users-success" class="success-message" style="display: none;">Alle Benutzerkonten erfolgreich gelöscht!</div>
     </div>
+    <div class="vote-management">
+        <h2>Abstimmungen verwalten</h2>
+        <button onclick="endCurrentVote()">Aktuelle Abstimmung beenden</button>
+        <button onclick="deleteCurrentVote()">Aktuelle Abstimmung löschen</button>
+        <div id="vote-management-success" class="success-message" style="display: none;">Aktion erfolgreich ausgeführt!</div>
+    </div>
     <script>
         function toggleMenu() {
             const menu = document.getElementById('menu');
@@ -327,6 +333,48 @@
                     loadTeamMembers(); // Aktualisiere die Teammitglieder-Auswahl
                 } else {
                     alert('Fehler beim Löschen der Kategorie.');
+                }
+            });
+        }
+
+        function endCurrentVote() {
+            fetch('/admin/end-vote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('vote-management-success').style.display = 'block';
+                    document.getElementById('vote-management-success').textContent = 'Abstimmung erfolgreich beendet!';
+                    setTimeout(() => {
+                        document.getElementById('vote-management-success').style.display = 'none';
+                    }, 3000);
+                } else {
+                    alert('Fehler beim Beenden der Abstimmung.');
+                }
+            });
+        }
+
+        function deleteCurrentVote() {
+            fetch('/admin/delete-vote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('vote-management-success').style.display = 'block';
+                    document.getElementById('vote-management-success').textContent = 'Abstimmung erfolgreich gelöscht!';
+                    setTimeout(() => {
+                        document.getElementById('vote-management-success').style.display = 'none';
+                    }, 3000);
+                } else {
+                    alert('Fehler beim Löschen der Abstimmung.');
                 }
             });
         }

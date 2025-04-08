@@ -8,7 +8,7 @@
     "start-pm2": "npm run install-pm2 && pm2 start server.js --name gaming-projects -f",
     "install-pm2": "npm install -g pm2",
     "install-express-session": "npm install express-session",
-    "install-connect-mongo": "npm install connect-mongo"
+    "stop-pm2": "pm2 stop all && pm2 delete all"
   },
   "dependencies": {
     "connect-mongo": "^4.6.0",
